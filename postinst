@@ -1,0 +1,60 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ]; then
+  CONFIG_DIR='/etc/cardano'
+  HOME_DIR='/var/lib/cardano'
+  if ! getent passwd cardano >/dev/null; then
+    # Defaults to create group=cardano, home=/home/cardano
+    adduser --quiet --system --group --shell '/bin/bash' --home "${HOME_DIR}" cardano
+  fi
+
+  # make config directories if don't exist
+  [ ! -d "${CONFIG_DIR}" ] && install -d -m 0750 -o root -g cardano "${CONFIG_DIR}"
+  # private readable by cardano so cn-leaderlog script can read keys as cardano
+  [ ! -d "${CONFIG_DIR}/private" ] && install -d -m 0750 -o root -g cardano "${CONFIG_DIR}/private"
+  # Nb. home directory /var/lib/cardano created above with adduser command
+
+  IOG_CONFIG_SRC='https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/mainnet-'
+  # Download latest mainnet genesis configuration files
+  echo "Downloading latest cardano-node genesis files"
+  cd "${CONFIG_DIR}"
+  for part in byron-genesis shelley-genesis alonzo-genesis; do
+    echo -n "  ${CONFIG_DIR}/mainnet-${part}.json ..."
+    curl -sL "${IOG_CONFIG_SRC}${part}.json" > "mainnet-${part}.json"
+    echo " saved."
+  done
+  # Download config and topology files only if don't already exist
+  cd "${CONFIG_DIR}"
+  for part in config topology; do
+    if [ -f "mainnet-${part}.json" ]; then
+      echo "  ${CONFIG_DIR}/mainnet-${part}.json exists. Unchanged."
+    else
+      echo -n "  ${CONFIG_DIR}/mainnet-${part}.json ..."
+      curl -sL "${IOG_CONFIG_SRC}${part}.json" > "mainnet-${part}.json"
+      chgrp cardano "mainnet-${part}.json"
+      chmod 0640 "mainnet-${part}.json"
+      echo " saved."
+    fi
+  done
+  # Create basic etc/my-cardano-node-config.json file
+  cd "${CONFIG_DIR}"
+  if [ -f 'my-cardano-node-config.json' ]; then
+    echo "  ${CONFIG_DIR}/my-cardano-node-config.json exists. Unchanged."
+  else
+    config="$(jq -n '{port: 3001, poolId: "#FIXME", pooltoolApiKey: "#FIXME", peers: []}')"
+    domain="$(hostname -d)"
+    for relay in relay1 relay2; do
+      config="$(echo "$config" | jq --arg addr "${relay}.${domain}" '.peers += [{addr: $addr, port: 3001, valency: 1}] | .')"
+    done
+    echo "$config" > 'my-cardano-node-config.json'
+    chgrp cardano 'my-cardano-node-config.json'
+    chmod 0640 'my-cardano-node-config.json'
+    echo "  ${CONFIG_DIR}/my-cardano-node-config.json. Created. Please edit as required."
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0

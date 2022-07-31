@@ -1,0 +1,24 @@
+#!/bin/sh
+# postrm script for cardano-node
+
+set -e
+
+case "$1" in
+  purge)
+    CONFIG_DIR='/etc/cardano'
+    HOME_DIR='/var/lib/cardano'
+    for part in byron-genesis shelley-genesis alonzo-genesis config topology; do
+      rm -f "${CONFIG_DIR}/mainnet-${part}.json"
+    done
+    rm -f "${CONFIG_DIR}/my-cardano-node-config.json"
+    for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}"; do
+      rmdir "${directory}"
+    done
+    rm -f "${HOME_DIR}/.bash_history"
+    # 'deluser --remove-home cardano' refuses home deletion when in /var
+    userdel --remove cardano
+esac
+
+#DEBHELPER#
+
+exit 0

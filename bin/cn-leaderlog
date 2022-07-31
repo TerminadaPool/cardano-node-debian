@@ -1,0 +1,60 @@
+#!/bin/bash
+# Author: terminada.io 20220704, updated 20220730
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' cardano-cli query leadership-schedule --mainnet --genesis /etc/cardano/mainnet-shelley-genesis.json --stake-pool-id "blahblahblah" --vrf-signing-key-file /etc/cardano/private/vrf.skey --current
+
+export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
+CONFIG_DIR='/etc/cardano' #FIXME
+pool_vrf_skey="${CONFIG_DIR}/private/vrf.skey" #FIXME
+shelley_genesis="${CONFIG_DIR}/mainnet-shelley-genesis.json" #FIXME
+config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME
+
+# Check poolId defined in config
+[[ -f "$config" ]] || { echo "Config: $config doesn't exist."; exit 1; }
+pool_id="$(jq -r '.poolId' "$config" 2>/dev/null)"
+if [[ -z "${pool_id:-}" || "$pool_id" == 'null' ]]; then
+  echo "Config: $config must contain poolId"
+  exit 1
+fi
+
+function usage() {
+  echo "Usage: $(basename $0) current | next" 2>&1
+  echo 'Generates leaderlog for current or next epoch'
+  echo
+}
+
+optstring=":h"
+while getopts ${optstring} arg; do
+  case ${arg} in
+    h) usage; exit 0;;
+    ?) echo "Invalid options: -${OPTARG}."; echo; usage; exit 1;;
+  esac
+done
+
+if [[ $(( $# - $OPTIND )) -ne 0 ]]; then usage; exit 1; fi
+epoch=${@:$OPTIND:1}
+if ! [[ "$epoch" =~ ^(current|next)$ ]]; then usage; exit 1; fi
+
+epoch_nr="$(cardano-cli query tip --mainnet | jq '.epoch')"
+if [[ "$epoch" == 'next' ]]; then (( epoch_nr++ )); fi
+
+printf 'epoch %d, poolid %s\n' "${epoch_nr}" "${pool_id}"
+printf '%2s %-10s %s\n' 'No' '  Slot' 'Time'
+printf -- '--------------------------------------\n'
+regex='^\s+([0-9]+)\s+([0-9-]+\s[0-9:]+\s.*)$'
+count=0
+while IFS= read -r line; do
+  [[ "${line:-}" =~ $regex ]] || continue # skip lines not about blocks
+  slot="${BASH_REMATCH[1]}"
+  time="${BASH_REMATCH[2]}"
+  localtime=$(date -d "${time}" "+%Y-%m-%dT%H:%M:%S%z")
+  (( count++ )) || true # errexit
+  printf '%2d %10d %s\n' "${count}" "${slot}" "${localtime}"
+done < <(nice -n 15 cardano-cli query leadership-schedule --mainnet --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
+printf -- '--------------------------------------\n'
+printf 'Total: %d assigned slots.\n' "$count"
+
+exit 0

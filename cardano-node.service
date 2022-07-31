@@ -1,0 +1,31 @@
+[Unit]
+Description=Cardano Node
+Requires=network.target
+
+[Service]
+Type=simple
+SyslogIdentifier=cardano-node
+Restart=always
+RestartSec=5
+TimeoutStopSec=300
+Nice=-7
+RuntimeDirectory=cardano
+User=cardano
+Group=cardano
+KillSignal=SIGINT
+LimitNOFILE=32768
+# Default PORT can be overridden in MY_CARDANO_NODE_CONFIG
+Environment='PORT=3001'
+Environment='MY_CARDANO_NODE_CONFIG=/etc/cardano/my-cardano-node-config.json'
+EnvironmentFile=-/run/cardano/cardano-node.env
+ExecStartPre=sh -c "if [ -f ${MY_CARDANO_NODE_CONFIG} ]; then echo PORT=\"$(jq '.port // 3001' ${MY_CARDANO_NODE_CONFIG})\" > /run/cardano/cardano-node.env; fi"
+ExecStart=cardano-node +RTS -N -RTS run \
+  --host-addr "0.0.0.0" \
+  --port "${PORT}" \
+  --topology "/etc/cardano/mainnet-topology.json" \
+  --database-path "/var/lib/cardano" \
+  --socket-path '/run/cardano/mainnet-node.socket' \
+  --config "/etc/cardano/mainnet-config.json"
+
+[Install]
+WantedBy=multi-user.target

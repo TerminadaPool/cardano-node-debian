@@ -1,0 +1,27 @@
+Source: cardano-node
+Section: misc
+Priority: optional
+Build-Depends: debhelper ( >= 11), pkg-config
+Maintainer: builder <builder@build.terminada.io>
+Standards-Version: 4.4.0
+Vcs-Git: git://github.com/input-output-hk/cardano-node.git
+Vcs-Browser: https://github.com/input-output-hk/cardano-node.git
+Homepage: https://cardano.org
+
+Package: cardano-node
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, curl, jq
+Pre-Depends: ${misc:Pre-Depends}
+Architecture: any
+Multi-Arch: same
+Description: Blockchain platform for changemakers, innovators, and visionaries,
+ with the tools and technologies required to create possibility for many, as
+ well as the few, and bring about positive global change.
+ .
+ Cardano is a proof-of-stake blockchain platform: the first to be founded on
+ peer-reviewed research and developed through evidence-based methods. It
+ combines pioneering technologies to provide unparalleled security and
+ sustainability to decentralized applications, systems, and societies.
+ .
+ With a leading team of engineers, Cardano exists to redistribute power from
+ unaccountable structures to the margins – to individuals – and be an enabling
+ force for positive change and progress.

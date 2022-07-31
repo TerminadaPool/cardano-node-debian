@@ -1,0 +1,89 @@
+#!/bin/bash
+# Author: terminada.io 20211031, updated 20220730
+set -o nounset
+set -o errexit
+set -o pipefail
+
+CONFIG_DIR='/etc/cardano' #FIXME
+export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
+shelley_genesis="${CONFIG_DIR}/mainnet-shelley-genesis.json" #FIXME
+service_url='https://api.clio.one/htopology/v1/'
+base_topology='https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/mainnet-topology.json' # IOG base topology
+nwmagic="$(jq -r '.networkMagic' "$shelley_genesis")"
+config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME {peers[]}
+DEFAULT_PORT='3001'
+if [[ -f "$config" ]]; then
+  hostname="$(jq -r '.hostname' "$config" 2>/dev/null)"
+  peers="$(jq '.peers' "$config" 2>/dev/null)"
+  port="$(jq '.port' "$config" 2>/dev/null)"
+fi
+# Defaults not defined in config
+[[ -z "${hostname:-}" || "$hostname" == 'null' ]] && hostname="$(hostname -f)"
+[[ -z "${peers:-}" ]] && peers='null'
+[[ -z "${port:-}" || "$port" == 'null' ]] && port="${DEFAULT_PORT}"
+
+function usage() {
+  echo "Usage: $(basename $0) [-s] [-f max_peers]" 2>&1
+  echo 'Send or fetch topology'
+  echo '  -s            Default: Send topology to https://api.clio.one'
+  echo '                If no -s or -f switch supplied then -s is assumed.'
+  echo '  -f max_peers  Fetch topology from api.clio.one to max_peers total'
+  echo
+}
+
+optstring=':sf:'
+while getopts ${optstring} arg; do
+  case ${arg} in
+    s) optsend='true';;
+    f)
+      maxpeers="$OPTARG"
+      isinteger='^[1-9][0-9]*$'
+      if ! [[ "${maxpeers:-}" =~ $isinteger ]]; then
+        echo "total_peers must be integer > 0"; echo; usage; exit 1
+      fi
+      ;;
+    ?) echo "Invalid options: -${OPTARG}."; echo; usage; exit 1;;
+  esac
+done
+
+function send_topology() {
+  local count=0
+  while
+    if (( ++count > 5 )); then
+      echo 'Error: send_topology(): curl localhost:12788 failed' >&2
+      return 1
+    fi
+    local blockNo="$(curl -s -H 'Accept: application/json' http:/localhost:12788 | jq -r '.cardano.node.metrics.blockNum.int.val')"
+    [[ -z "${blockNo:-}" ]]
+  do sleep 1; done
+  local response="$(curl -sf -4 "${service_url}?port=${port}&blockNo=${blockNo}&valency=1&magic=${nwmagic}&hostname=${hostname}")"
+  echo "$response"
+}
+
+# fetch topology from $service_url containing up to $1 maxpeers
+function fetch_topology() {
+  local maxpeers="$1"
+  if [[ "${maxpeers:-}" -gt 0 ]]; then # Check even if caller already checked
+    curl -sf -4 "${service_url}fetch/?max=${maxpeers}&magic=${nwmagic}&ipv=4"
+  else
+    echo '{ "Producers": [] }' # Empty Producers[] when ! $maxfetch > 0
+  fi
+}
+
+if [[ "${maxpeers:-}" -gt 0 ]]; then # IE: want to fetch topology info
+  topology="$(curl -sL ${base_topology})" # Start with IOG base topology
+  # Add peers
+  topology="$(jq --argjson arr1 "$(echo "$topology" | jq '.Producers')" --argjson arr2 "$peers" -n '$arr1 + $arr2 | {Producers: .}')"
+  # Fetch and add unique extras (unique_by(.addr))
+  curr_peers="$(echo "$topology" | jq '.Producers | length')"
+  extra_peers=$(( $maxpeers - $curr_peers ))
+  if [[ "$extra_peers" -gt 0 ]]; then # add unique extras
+    jq --argjson arr1 "$(echo "$topology" | jq '.Producers')" --argjson arr2 "$(fetch_topology $extra_peers | jq '.Producers')" -n '$arr1 + $arr2 | unique_by(.addr) | {Producers: .}'
+  else
+    echo "$topology" # no extras to add
+  fi
+else # IE: want to send topology info
+  send_topology || exit 1
+fi
+
+exit 0
