@@ -17,6 +17,11 @@ Install build dependencies and some extra requirments
 apt install build-essential fakeroot devscripts debhelper git curl automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux jq wget libncursesw5 libtool autoconf llvm llvm-dev libnuma-dev libncurses-dev libncurses5
 ```
 
+Install some extra libraries required by cardano-node
+```
+apt install libsodium23 libsodium-dev
+```
+
 ## Create a separate user ('builder') for building
 This is advisable so that the installation of GHC and its configuration won't interfere with anything in your normal user account.  
 (as root)  
