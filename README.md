@@ -14,7 +14,7 @@ The deb package produced will install things in the following standard locations
 Install build dependencies and some extra requirments  
 (as root)  
 ```
-apt install build-essential fakeroot devscripts debhelper git curl automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux jq wget libncursesw5 libtool autoconf llvm llvm-dev libnuma-dev libncurses-dev libncurses5
+apt install build-essential fakeroot devscripts debhelper git curl automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ jq libncursesw5 libtool autoconf llvm llvm-dev libnuma-dev libncurses-dev libncurses5
 ```
 
 Install some extra libraries required by cardano-node
