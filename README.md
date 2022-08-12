@@ -115,9 +115,6 @@ git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${lat
 cd cardano-node-${latest_version}; \
 git fetch --all --recurse-submodules --tags; \
 git checkout tags/${latest_version}; \
-# Begin Fix: Version 1.34.1 fix so cardano-cli works when in P2P mode; \
-sed -i 's/tag: 4fac197b6f0d2ff60dc3486c593b68dc00969fbf/tag: 48ff9f3a9876713e87dc302e567f5747f21ad720/g' cabal.project; \
-# End Fix; \
 cd ..; \
 tar cvzf cardano-node_${latest_version}.orig.tar.gz cardano-node-${latest_version}; \
 cd cardano-node-${latest_version}; \
@@ -127,7 +124,7 @@ debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 
 Your deb will be produced in the parent directory: ~/src/cardano-node/  
-And named something like: cardano-node_1.34.1-2_amd64.deb
+And named something like: cardano-node_1.35.3-1_amd64.deb
 
 ****
 ****
@@ -136,7 +133,7 @@ And named something like: cardano-node_1.34.1-2_amd64.deb
 If there is a new version of cardano-node and this repository has not been updated to use it then you can get an error like:  
 > This package has a Debian revision number but there does not seem to be
 > an appropriate original tar file or .orig directory in the parent directory;
-> (expected one of cardano-node_1.34.1.orig.tar.gz, cardano-node_1.34.1.orig.tar.bz2, cardano-node_1.34.1.orig.tar.lzma, cardano-node_1.34.1.orig.tar.xz or cardano-node-1.30.1.orig)
+> (expected one of cardano-node_1.34.1.orig.tar.gz, cardano-node_1.34.1.orig.tar.bz2, cardano-node_1.34.1.orig.tar.lzma, cardano-node_1.34.1.orig.tar.xz or cardano-node-1.34.1.orig)
 > continue anyway? (y/n)
 
 Answer this with 'n'.
