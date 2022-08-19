@@ -9,7 +9,26 @@ The deb package produced will install things in the following standard locations
 * Cardano blockchain data is stored in /var/lib/cardano/
 * systemd service file is placed in /lib/systemd/system/
 
-# How to make your own cardano-node deb package
+# Installing pre-built deb packages
+If all you want is to install a pre-built cardano-node deb package then these are available for arm64 and amd64 architectures at:
+https://TerminadaPool.github.io/deb
+
+To install the latest cardano-node binary deb package do the following:
+```
+wget -O- https://TerminadaPool.github.io/deb/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/terminada.io.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/terminada.io.gpg] https://TerminadaPool.github.io/deb ./" | sudo tee /etc/apt/sources.list.d/terminada.io.list
+sudo apt update
+```
+
+If you install this binary deb package, files will be placed on your system as noted above.  
+If you later do an "apt purge cardano-node" then all these installed files will be removed.  
+
+Note: A fully synced Cardano blockchain will currently require:
+* Around 100G of disk space
+* 16G RAM and 16G Swap
+* Dual core 2GHz processor
+
+# How to build your own cardano-node deb package
 ## Setup your build environment
 Install build dependencies and some extra requirments  
 (as root)  
