@@ -18,6 +18,7 @@ To install the latest cardano-node binary deb package do the following:
 wget -O- https://TerminadaPool.github.io/deb/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/terminada.io.gpg > /dev/null
 echo "deb [signed-by=/usr/share/keyrings/terminada.io.gpg] https://TerminadaPool.github.io/deb ./" | sudo tee /etc/apt/sources.list.d/terminada.io.list
 sudo apt update
+sudo apt install cardano-node
 ```
 
 If you install this binary deb package, files will be placed on your system as noted above.  
