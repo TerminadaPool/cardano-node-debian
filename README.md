@@ -42,6 +42,10 @@ Install some extra libraries required by cardano-node
 apt install libsodium23 libsodium-dev
 ```
 
+You will also require libsecp256k1 development library  
+See: https://github.com/TerminadaPool/libsecp256k1-iog-debian for how to build it as a deb package.  
+Once you have built the libsecp256k1-iog library install it too.
+
 ## Create a separate user ('builder') for building
 This is advisable so that the installation of GHC and its configuration won't interfere with anything in your normal user account.  
 (as root)  
