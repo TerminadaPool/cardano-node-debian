@@ -44,10 +44,6 @@ if [ "$1" = "configure" ]; then
     echo "  ${CONFIG_DIR}/my-cardano-node-config.json exists. Unchanged."
   else
     config="$(jq -n '{port: 3001, poolId: "#FIXME", pooltoolApiKey: "#FIXME", peers: []}')"
-    domain="$(hostname -d)"
-    for relay in relay1 relay2; do
-      config="$(echo "$config" | jq --arg addr "${relay}.${domain}" '.peers += [{addr: $addr, port: 3001, valency: 1}] | .')"
-    done
     echo "$config" > 'my-cardano-node-config.json'
     chgrp cardano 'my-cardano-node-config.json'
     chmod 0640 'my-cardano-node-config.json'
