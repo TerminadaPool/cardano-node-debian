@@ -1,7 +1,7 @@
 # Packaging cardano-node as a debian package
-This document outlines one way to compile cardano-node into a debian package.  This provides a way to easily install cardano-node onto any stable debian system and have the package management system take care of everything.
+This document outlines one way to compile cardano-node into a deb package.  This provides a way to easily install cardano-node onto any Debian or Ubuntu system and have the package management system take care of everything.
 
-This is not an official debian package and it doesn't do things the official debian way.  In particular, it is not possible to use the official debian stable version of haskell to compile the cardano-node.  Furthermore, this deb package will not deliver the proper copyright documents or any manuals.
+This is not an official deb package and it doesn't do things the official Debian or Ubuntu way.  In particular, it is not possible to use the official Debian/Ubuntu version of haskell to compile the cardano-node.  Furthermore, this deb package will not deliver the proper copyright documents or any manuals.
 
 The deb package produced will install things in the following standard locations:
 * Executables (cardano-node, cardano-cli, plus some utilities) get placed in /usr/bin/
@@ -44,7 +44,7 @@ apt install libsodium23 libsodium-dev
 
 You will also require libsecp256k1 development library  
 See: https://github.com/TerminadaPool/libsecp256k1-iog-debian for how to build it as a deb package.  
-Once you have built the libsecp256k1-iog library install it too.
+Once you have built the libsecp256k1-iog library, install it too.
 
 ## Create a separate user ('builder') for building
 This is advisable so that the installation of GHC and its configuration won't interfere with anything in your normal user account.  
@@ -113,6 +113,12 @@ ghcup --version; \
 cabal --version
 ```
 
+# Check the latest version of cardano-node
+```
+curl -s https://api.github.com/repos/input-output-hk/cardano-node/releases/latest | jq -r .tag_name
+```
+Compare this with the latest_version variable in the build commands below.
+
 # Build the cardano-node deb
 This sequence of commands will update your GHC compiler and dependencies as well as completely remove and recreate the '~/src/cardano-node' directory.  
 Familiarise yourself with the following commands first.  
@@ -131,10 +137,15 @@ cabal --version; \
 echo "--------------------------------------------------"; \
 echo; \
 sleep 2; \
+
+echo "Removing directory ${HOME}/src/cardano-node"; \
 rm -rf ${HOME}/src/cardano-node; \
+echo "Creating directory ${HOME}/src/cardano-node"; \
 mkdir -p ${HOME}/src/cardano-node; \
 cd ${HOME}/src/cardano-node/; \
-latest_version=$(curl -s https://api.github.com/repos/input-output-hk/cardano-node/releases/latest | jq -r .tag_name); \
+
+latest_version='1.35.3'; \
+
 git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${latest_version}; \
 cd cardano-node-${latest_version}; \
 git fetch --all --recurse-submodules --tags; \
@@ -152,25 +163,3 @@ And named something like: cardano-node_1.35.3-1_amd64.deb
 
 ****
 ****
-
-### Update your copy of cardano-node-debian repository for new upstream version
-If there is a new version of cardano-node and this repository has not been updated to use it then you can get an error like:  
-> This package has a Debian revision number but there does not seem to be
-> an appropriate original tar file or .orig directory in the parent directory;
-> (expected one of cardano-node_1.34.1.orig.tar.gz, cardano-node_1.34.1.orig.tar.bz2, cardano-node_1.34.1.orig.tar.lzma, cardano-node_1.34.1.orig.tar.xz or cardano-node-1.34.1.orig)
-> continue anyway? (y/n)
-
-Answer this with 'n'.
-
-You can do the following to update your copy of the repository to the latest version:
-```
-latest_version="$(curl -s https://api.github.com/repos/input-output-hk/cardano-node/releases/latest | jq -r .tag_name)"; \
-cd "${HOME}/src/cardano-node/cardano-node-${latest_version}"/; \
-export EMAIL='builder@localhost'; dch --newversion "${latest_version}-1" --package cardano-node;
-```
-Then build the deb:
-```
-cd "${HOME}/src/cardano-node/cardano-node-${latest_version}"/; \
-unset latest_version; \
-debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
-```
