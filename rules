@@ -20,28 +20,50 @@ override_dh_auto_configure:
 	echo "  type: git" >> cabal.project.local
 	echo "  location: https://github.com/input-output-hk/bech32" >> cabal.project.local
 	echo "  tag: v1.1.2" >> cabal.project.local
-	echo "  subdir: bech32" >> cabal.project.local
+	echo "  subdir:" >> cabal.project.local
+	echo "    bech32" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "source-repository-package" >> cabal.project.local
+	echo "  type: git" >> cabal.project.local
+	echo "  location: https://github.com/input-output-hk/hjsonpointer" >> cabal.project.local
+	echo "  tag: bb99294424e0c5b3c2942c743b545e4b01c12ce8" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "source-repository-package" >> cabal.project.local
+	echo "  type: git" >> cabal.project.local
+	echo "  location: https://github.com/input-output-hk/hjsonschema" >> cabal.project.local
+	echo "  tag: 1546af7fc267d5eea805ef223dd2b59ac120b784" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "source-repository-package" >> cabal.project.local
+	echo "  type: git" >> cabal.project.local
+	echo "  location: https://github.com/haskell-works/hw-aeson" >> cabal.project.local
+	echo "  tag: d99d2f3e39a287607418ae605b132a3deb2b753f" >> cabal.project.local
 	echo "" >> cabal.project.local
 	echo "source-repository-package" >> cabal.project.local
 	echo "  type: git" >> cabal.project.local
 	echo "  location: https://github.com/input-output-hk/cardano-addresses" >> cabal.project.local
-	echo "  tag: 3.11.0" >> cabal.project.local
+	echo "  tag: 3.12.0" >> cabal.project.local
 	echo "  subdir:" >> cabal.project.local
 	echo "    command-line" >> cabal.project.local
 	echo "    core" >> cabal.project.local
 	echo "" >> cabal.project.local
+	echo "allow-newer:" >> cabal.project.local
+	echo "  *:aeson" >> cabal.project.local
+	echo "" >> cabal.project.local
 
 override_dh_auto_build:
-	cabal -O2 build all
-	cabal -O2 build bech32
-#	cabal -O2 build cardano-addresses-cli
+	cabal -O2 build all --disable-tests --disable-profiling
+	cabal -O2 build bech32 --disable-tests --disable-profiling
+	cabal -O2 build cardano-submit-api --disable-profiling
+	cabal -O2 build cardano-ping --disable-tests --disable-profiling
+	cabal -O2 build cardano-addresses-cli --disable-tests --disable-profiling
 
 override_dh_auto_install:
 	mkdir -p debian/cardano-node/usr/bin
 	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-node/usr/bin/
-#	cp -p $(shell ./scripts/bin-path.sh cardano-address) debian/cardano-node/usr/bin/
+	cp -p $(shell ./scripts/bin-path.sh cardano-ping) debian/cardano-node/usr/bin/
+	cp -p $(shell ./scripts/bin-path.sh cardano-address) debian/cardano-node/usr/bin/
 
 override_dh_installsystemd:
 	dh_installsystemd --no-enable --no-start --restart-after-upgrade
