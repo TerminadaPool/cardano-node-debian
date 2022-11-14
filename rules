@@ -51,19 +51,19 @@ override_dh_auto_configure:
 	echo "" >> cabal.project.local
 
 override_dh_auto_build:
-	cabal -O2 build all --disable-tests --disable-profiling
-	cabal -O2 build bech32 --disable-tests --disable-profiling
-	cabal -O2 build cardano-submit-api --disable-profiling
-	cabal -O2 build cardano-ping --disable-tests --disable-profiling
-	cabal -O2 build cardano-addresses-cli --disable-tests --disable-profiling
+	cabal -O2 build all
+	cabal -O2 build bech32
+	cabal -O2 build cardano-submit-api
+	cabal -O2 build cardano-addresses-cli
+	#cabal -O2 build cardano-ping --disable-tests --disable-profiling
 
 override_dh_auto_install:
 	mkdir -p debian/cardano-node/usr/bin
 	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-node/usr/bin/
-	cp -p $(shell ./scripts/bin-path.sh cardano-ping) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh cardano-address) debian/cardano-node/usr/bin/
+	#cp -p $(shell ./scripts/bin-path.sh cardano-ping) debian/cardano-node/usr/bin/
 
 override_dh_installsystemd:
 	dh_installsystemd --no-enable --no-start --restart-after-upgrade

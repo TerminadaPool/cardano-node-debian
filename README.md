@@ -144,7 +144,7 @@ echo "Creating directory ${HOME}/src/cardano-node"; \
 mkdir -p ${HOME}/src/cardano-node; \
 cd ${HOME}/src/cardano-node/; \
 
-latest_version='1.35.3'; \
+latest_version='1.35.4'; \
 
 git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${latest_version}; \
 cd cardano-node-${latest_version}; \
@@ -159,7 +159,7 @@ debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 
 Your deb will be produced in the parent directory: ~/src/cardano-node/  
-And named something like: cardano-node_1.35.3-1_amd64.deb
+And named something like: cardano-node_1.35.4-1_amd64.deb
 
 ****
 ****
