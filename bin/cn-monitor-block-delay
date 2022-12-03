@@ -1,17 +1,18 @@
 #!/bin/bash
-# Author: terminada.io 20211031 updated 20220730
+# Author: terminada.io 20211031 updated 20221203
 set -o nounset
 set -o errexit
 set -o pipefail
 
 CONFIG_DIR='/etc/cardano' #FIXME
-export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
+CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}-node.socket"
 # If sending to pooltool config must contain {poolId:, pooltoolApiKey:}
 config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME
 
 # https://forum.cardano.org/t/and-so-it-begins-reflections-on-this-first-shelley-epoch/37544
 # Shelley first slot: "2020-07-29 21:44:51 UTC", epoch 208, slot 4492800
-# echo $(date -d"2020-07-29 21:44:51 UTC" "+%s") - 4492800 | bc == 1591566291
+# echo $(date -d"2020-07-29 21:44:51 UTC" "+%s") - 4492800 | bc # == 1591566291
 slot0sec=1591566291 # Slot 0 seconds since 1970-01-01 00:00:00 UTC
 
 function usage() {

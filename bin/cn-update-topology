@@ -1,15 +1,16 @@
 #!/bin/bash
-# Author: terminada.io 20211031, updated 20220730
+# Author: terminada.io 20211031, updated 20221203
 set -o nounset
 set -o errexit
 set -o pipefail
 
 CONFIG_DIR='/etc/cardano' #FIXME
-export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
-shelley_genesis="${CONFIG_DIR}/mainnet-shelley-genesis.json" #FIXME
+CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}-node.socket"
+shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}-shelley-genesis.json"
 service_url='https://api.clio.one/htopology/v1/'
-base_topology='https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/mainnet-topology.json' # IOG base topology
-nwmagic="$(jq -r '.networkMagic' "$shelley_genesis")"
+base_topology="https://book.world.dev.cardano.org/environments/${CONFIG_NET}/topology.json" # IOG base topology
+nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
 config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME {peers[]}
 DEFAULT_PORT='3001'
 if [[ -f "$config" ]]; then

@@ -8,8 +8,10 @@ set -o nounset
 
 export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
 CONFIG_DIR='/etc/cardano' #FIXME
+CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
 pool_vrf_skey="${CONFIG_DIR}/private/vrf.skey" #FIXME
-shelley_genesis="${CONFIG_DIR}/mainnet-shelley-genesis.json" #FIXME
+shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}-shelley-genesis.json" #FIXME
+nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
 config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME
 
 # Check poolId defined in config
@@ -38,7 +40,7 @@ if [[ $(( $# - $OPTIND )) -ne 0 ]]; then usage; exit 1; fi
 epoch=${@:$OPTIND:1}
 if ! [[ "$epoch" =~ ^(current|next)$ ]]; then usage; exit 1; fi
 
-epoch_nr="$(cardano-cli query tip --mainnet | jq '.epoch')"
+epoch_nr="$(cardano-cli query tip --testnet-magic "${nwmagic}" | jq '.epoch')"
 if [[ "$epoch" == 'next' ]]; then (( epoch_nr++ )); fi
 
 printf 'epoch %d, poolid %s\n' "${epoch_nr}" "${pool_id}"
@@ -53,7 +55,7 @@ while IFS= read -r line; do
   localtime=$(date -d "${time}" "+%Y-%m-%dT%H:%M:%S%z")
   (( count++ )) || true # errexit
   printf '%2d %10d %s\n' "${count}" "${slot}" "${localtime}"
-done < <(nice -n 15 cardano-cli query leadership-schedule --mainnet --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
+done < <(nice -n 15 cardano-cli query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
 printf -- '--------------------------------------\n'
 printf 'Total: %d assigned slots.\n' "$count"
 

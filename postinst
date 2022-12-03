@@ -16,32 +16,25 @@ if [ "$1" = "configure" ]; then
   [ ! -d "${CONFIG_DIR}/private" ] && install -d -m 0750 -o root -g cardano "${CONFIG_DIR}/private"
   # Nb. home directory /var/lib/cardano created above with adduser command
 
-  IOG_CONFIG_SRC='https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/mainnet-'
-  # Download latest mainnet genesis configuration files
-  echo "Downloading latest cardano-node genesis files"
+  IOG_CONFIG_SRC='https://book.world.dev.cardano.org/environments'
+  echo "Downloading configuration files"
   cd "${CONFIG_DIR}"
-  for part in byron-genesis shelley-genesis alonzo-genesis; do
-    echo -n "  ${CONFIG_DIR}/mainnet-${part}.json ..."
-    curl -sL "${IOG_CONFIG_SRC}${part}.json" > "mainnet-${part}.json"
-    echo " saved."
-  done
-  # Download config and topology files only if don't already exist
-  cd "${CONFIG_DIR}"
-  for part in config topology; do
-    if [ -f "mainnet-${part}.json" ]; then
-      echo "  ${CONFIG_DIR}/mainnet-${part}.json exists. Unchanged."
-    else
-      echo -n "  ${CONFIG_DIR}/mainnet-${part}.json ..."
-      curl -sL "${IOG_CONFIG_SRC}${part}.json" > "mainnet-${part}.json"
-      chgrp cardano "mainnet-${part}.json"
-      chmod 0640 "mainnet-${part}.json"
-      echo " saved."
-    fi
+  for net in mainnet preprod preview; do
+    for part in config topology byron-genesis shelley-genesis alonzo-genesis; do
+      if [ -f "${net}-${part}.json" ]; then
+        echo "  ${CONFIG_DIR}/${net}-${part}.json exists. Skipping."
+      else
+        echo -n "  ${CONFIG_DIR}/${net}-${part}.json ..."
+        curl -sL "${IOG_CONFIG_SRC}/${net}/${part}.json" > "${net}-${part}.json"
+	chgrp cardano "${net}-${part}.json"
+	chmod 0640 "${net}-${part}.json"
+        echo " saved."
+      fi
+    done
   done
   # Create basic etc/my-cardano-node-config.json file
-  cd "${CONFIG_DIR}"
   if [ -f 'my-cardano-node-config.json' ]; then
-    echo "  ${CONFIG_DIR}/my-cardano-node-config.json exists. Unchanged."
+    echo "  ${CONFIG_DIR}/my-cardano-node-config.json exists. Skipping."
   else
     config="$(jq -n '{port: 3001, poolId: "#FIXME", pooltoolApiKey: "#FIXME", peers: []}')"
     echo "$config" > 'my-cardano-node-config.json'
