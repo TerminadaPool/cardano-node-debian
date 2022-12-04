@@ -17,30 +17,36 @@ if [ "$1" = "configure" ]; then
   # Nb. home directory /var/lib/cardano created above with adduser command
 
   IOG_CONFIG_SRC='https://book.world.dev.cardano.org/environments'
-  echo "Downloading configuration files"
+  echo "Downloading missing configuration files."
   cd "${CONFIG_DIR}"
   for net in mainnet preprod preview; do
     for part in config topology byron-genesis shelley-genesis alonzo-genesis; do
+      echo -n "  ${CONFIG_DIR}/${net}-${part}.json ..."
       if [ -f "${net}-${part}.json" ]; then
-        echo "  ${CONFIG_DIR}/${net}-${part}.json exists. Skipping."
+        echo " exists."
       else
-        echo -n "  ${CONFIG_DIR}/${net}-${part}.json ..."
-        curl -sL "${IOG_CONFIG_SRC}/${net}/${part}.json" > "${net}-${part}.json"
-	chgrp cardano "${net}-${part}.json"
-	chmod 0640 "${net}-${part}.json"
-        echo " saved."
+        if curl -sL "${IOG_CONFIG_SRC}/${net}/${part}.json" -o "${net}-${part}.json" --max-time 20; then
+          chgrp cardano "${net}-${part}.json"
+          chmod 0640 "${net}-${part}.json"
+          echo " saved."
+        else
+          echo " Download FAILED!"
+        fi
       fi
     done
   done
   # Create basic etc/my-cardano-node-config.json file
+  echo "Checking for my-cardano-node-config.json file"
+  cd "${CONFIG_DIR}"
+  echo -n "  ${CONFIG_DIR}/my-cardano-node-config.json ..."
   if [ -f 'my-cardano-node-config.json' ]; then
-    echo "  ${CONFIG_DIR}/my-cardano-node-config.json exists. Skipping."
+    echo " exists."
   else
     config="$(jq -n '{port: 3001, poolId: "#FIXME", pooltoolApiKey: "#FIXME", peers: []}')"
     echo "$config" > 'my-cardano-node-config.json'
     chgrp cardano 'my-cardano-node-config.json'
     chmod 0640 'my-cardano-node-config.json'
-    echo "  ${CONFIG_DIR}/my-cardano-node-config.json. Created. Please edit as required."
+    echo " created. Please edit as required."
   fi
 fi
 

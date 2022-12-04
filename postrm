@@ -7,16 +7,22 @@ case "$1" in
   purge)
     CONFIG_DIR='/etc/cardano'
     HOME_DIR='/var/lib/cardano'
-    for part in byron-genesis shelley-genesis alonzo-genesis config topology; do
-      rm -f "${CONFIG_DIR}/mainnet-${part}.json"
+    # Remove Cardano config files
+    for net in mainnet preprod preview; do
+      for part in config topology byron-genesis shelley-genesis alonzo-genesis; do
+        rm -f "${CONFIG_DIR}/${net}-${part}.json"
+      done
     done
     rm -f "${CONFIG_DIR}/my-cardano-node-config.json"
+    # Remove config directories. Nb. private subdir not removed if non-empty
     for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}"; do
-      rmdir "${directory}"
+      rmdir --ignore-fail-on-non-empty "${directory}"
     done
-    rm -f "${HOME_DIR}/.bash_history"
-    # 'deluser --remove-home cardano' refuses home deletion when in /var
-    userdel --remove cardano
+    # Remove home directory dotfiles that can get automatically created
+    for dotfile in bash_history bashrc profile viminfo; do
+      rm -f "${HOME_DIR}/.${dotfile}"
+    done
+    userdel --remove cardano # 'deluser --remove-home' refuses home deletion in /var
 esac
 
 #DEBHELPER#

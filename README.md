@@ -155,6 +155,7 @@ tar cvzf cardano-node_${latest_version}.orig.tar.gz cardano-node-${latest_versio
 cd cardano-node-${latest_version}; \
 unset latest_version; \
 git clone https://github.com/TerminadaPool/cardano-node-debian.git debian; \
+
 debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 

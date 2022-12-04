@@ -1,16 +1,16 @@
 #!/bin/bash
-# Author: terminada.io 20220704, updated 20220730
+# Author: terminada.io 20220704, updated 20221203
 set -o errexit
 set -o pipefail
 set -o nounset
 
 # CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' cardano-cli query leadership-schedule --mainnet --genesis /etc/cardano/mainnet-shelley-genesis.json --stake-pool-id "blahblahblah" --vrf-signing-key-file /etc/cardano/private/vrf.skey --current
 
-export CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet-node.socket' #FIXME
 CONFIG_DIR='/etc/cardano' #FIXME
 CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}-node.socket" #FIXME
 pool_vrf_skey="${CONFIG_DIR}/private/vrf.skey" #FIXME
-shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}-shelley-genesis.json" #FIXME
+shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}-shelley-genesis.json"
 nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
 config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME
 

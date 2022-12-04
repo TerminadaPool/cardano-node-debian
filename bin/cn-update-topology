@@ -6,7 +6,6 @@ set -o pipefail
 
 CONFIG_DIR='/etc/cardano' #FIXME
 CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
-export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}-node.socket"
 shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}-shelley-genesis.json"
 service_url='https://api.clio.one/htopology/v1/'
 base_topology="https://book.world.dev.cardano.org/environments/${CONFIG_NET}/topology.json" # IOG base topology

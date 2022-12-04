@@ -8,7 +8,7 @@ CONFIG_DIR='/etc/cardano' #FIXME
 CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
 export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}-node.socket"
 # If sending to pooltool config must contain {poolId:, pooltoolApiKey:}
-config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME
+config="${CONFIG_DIR}/my-cardano-node-config.json" #FIXME {poolId:, pooltoolApiKey:}
 
 # https://forum.cardano.org/t/and-so-it-begins-reflections-on-this-first-shelley-epoch/37544
 # Shelley first slot: "2020-07-29 21:44:51 UTC", epoch 208, slot 4492800
