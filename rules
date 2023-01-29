@@ -9,7 +9,9 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 	dh $@ --with autoreconf -Bbuild
 
 override_dh_auto_configure:
+	cabal update
 	cabal configure --with-compiler=ghc-8.10.7 --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
+	#cabal update
 	echo "package cardano-crypto-praos" >>  cabal.project.local
 	echo "  flags: -external-libsodium-vrf" >>  cabal.project.local
 	echo "" >> cabal.project.local
@@ -63,6 +65,7 @@ override_dh_auto_install:
 	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-node/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh cardano-address) debian/cardano-node/usr/bin/
+	cp -p $(shell ./scripts/bin-path.sh cardano-submit-api) debian/cardano-node/usr/bin/
 	#cp -p $(shell ./scripts/bin-path.sh cardano-ping) debian/cardano-node/usr/bin/
 
 override_dh_installsystemd:

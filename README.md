@@ -117,13 +117,15 @@ cabal --version
 ```
 curl -s https://api.github.com/repos/input-output-hk/cardano-node/releases/latest | jq -r .tag_name
 ```
-Compare this with the latest_version variable in the build commands below.
+Compare this with the cardano_node_version variable in the build commands below.
 
 # Build the cardano-node deb
 This sequence of commands will update your GHC compiler and dependencies as well as completely remove and recreate the '~/src/cardano-node' directory.  
 Familiarise yourself with the following commands first.  
 Then you can simply copy and paste them all into a terminal and press enter.  
 ```
+cardano_node_version=1.35.5; \
+
 ghcup upgrade; \
 ghcup install ghc '8.10.7'; \
 ghcup set ghc '8.10.7'; \
@@ -144,23 +146,21 @@ echo "Creating directory ${HOME}/src/cardano-node"; \
 mkdir -p ${HOME}/src/cardano-node; \
 cd ${HOME}/src/cardano-node/; \
 
-latest_version='1.35.4'; \
-
-git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${latest_version}; \
-cd cardano-node-${latest_version}; \
+git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${cardano_node_version}; \
+cd cardano-node-${cardano_node_version}; \
 git fetch --all --recurse-submodules --tags; \
-git checkout tags/${latest_version}; \
+git checkout tags/${cardano_node_version}; \
 cd ..; \
-tar cvzf cardano-node_${latest_version}.orig.tar.gz cardano-node-${latest_version}; \
-cd cardano-node-${latest_version}; \
-unset latest_version; \
+tar cvzf cardano-node_${cardano_node_version}.orig.tar.gz cardano-node-${cardano_node_version}; \
+cd cardano-node-${cardano_node_version}; \
+unset cardano_node_version; \
 git clone https://github.com/TerminadaPool/cardano-node-debian.git debian; \
 
 debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 
 Your deb will be produced in the parent directory: ~/src/cardano-node/  
-And named something like: cardano-node_1.35.4-1_amd64.deb
+And named something like: cardano-node_1.35.5-1_amd64.deb
 
 ****
 ****
