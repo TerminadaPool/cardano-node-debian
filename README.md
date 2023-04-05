@@ -124,7 +124,7 @@ This sequence of commands will update your GHC compiler and dependencies as well
 Familiarise yourself with the following commands first.  
 Then you can simply copy and paste them all into a terminal and press enter.  
 ```
-cardano_node_version=1.35.6; \
+cardano_node_version=1.35.7; \
 
 ghcup upgrade; \
 ghcup install ghc '8.10.7'; \
@@ -160,7 +160,7 @@ debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 
 Your deb will be produced in the parent directory: ~/src/cardano-node/  
-And named something like: cardano-node_1.35.6-1_amd64.deb
+And named something like: cardano-node_1.35.7-1_amd64.deb
 
 ****
 ****

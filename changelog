@@ -1,6 +1,6 @@
-cardano-node (1.35.6-1) UNRELEASED; urgency=medium
+cardano-node (1.35.7-1) UNRELEASED; urgency=medium
 
   [ builder@build.terminada.io ]
   * Initial release. (Closes: #XXXXXX)
 
- --  <builder@build.terminada.io>  Fri, 17 Mar 2023 14:53:03 +1000
+ --  <builder@build.terminada.io>  Wed, 05 Apr 2023 17:17:35 +1000
