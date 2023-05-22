@@ -25,7 +25,7 @@ If you install this binary deb package, files will be placed on your system as n
 If you later do an "apt purge cardano-node" then all these installed files will be removed.  
 
 Note: A fully synced Cardano blockchain will currently require:
-* Around 100G of disk space
+* Around 130G of disk space
 * 16G RAM and 16G Swap
 * Dual core 2GHz processor
 
@@ -34,17 +34,19 @@ Note: A fully synced Cardano blockchain will currently require:
 Install build dependencies and some extra requirments  
 (as root)  
 ```
-apt install build-essential fakeroot devscripts debhelper git curl automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ jq libncursesw5 libtool autoconf llvm llvm-dev libnuma-dev libncurses-dev libncurses5
+apt install build-essential fakeroot devscripts debhelper git curl automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ jq libncursesw5 libtool autoconf llvm llvm-dev libnuma-dev libncurses-dev libncurses5 dh-make
 ```
 
-Install some extra libraries required by cardano-node
+Install some extra libraries required by cardano-node  
+This is using the debian stable (bullseye) packaged versions  
 ```
 apt install libsodium23 libsodium-dev
 ```
 
 You will also require libsecp256k1 development library  
-See: https://github.com/TerminadaPool/libsecp256k1-iog-debian for how to build it as a deb package.  
-Once you have built the libsecp256k1-iog library, install it too.
+See: https://github.com/TerminadaPool/libsecp256k1-bullseye-backport for how to backport the version from testing (bookworm).  
+Note: This is a more updated version of libsecp256k1 than is specified by IOG.  
+Once you have built the libsecp256k1 library, install the debs you built.  
 
 ## Create a separate user ('builder') for building
 This is advisable so that the installation of GHC and its configuration won't interfere with anything in your normal user account.  
@@ -124,11 +126,13 @@ This sequence of commands will update your GHC compiler and dependencies as well
 Familiarise yourself with the following commands first.  
 Then you can simply copy and paste them all into a terminal and press enter.  
 ```
-cardano_node_version=1.35.7; \
+version='8.0.0'; \
+basedir="${HOME}/src/cardano-node"; \
 
 ghcup upgrade; \
-ghcup install ghc '8.10.7'; \
-ghcup set ghc '8.10.7'; \
+ghcup install ghc '9.2.7'; \
+ghcup set ghc '9.2.7'; \
+ghcup install cabal '3.10.1.0'; \
 cabal update; \
 echo; \
 echo "--------------------------------------------------"; \
@@ -140,27 +144,28 @@ echo "--------------------------------------------------"; \
 echo; \
 sleep 2; \
 
-echo "Removing directory ${HOME}/src/cardano-node"; \
-rm -rf ${HOME}/src/cardano-node; \
-echo "Creating directory ${HOME}/src/cardano-node"; \
-mkdir -p ${HOME}/src/cardano-node; \
-cd ${HOME}/src/cardano-node/; \
+rm -rf "${basedir}/cardano-node-${version}"; \
+mkdir -p "${basedir}"; \
+cd "${basedir}"; \
 
-git clone https://github.com/input-output-hk/cardano-node.git cardano-node-${cardano_node_version}; \
-cd cardano-node-${cardano_node_version}; \
+git clone https://github.com/input-output-hk/cardano-node.git "cardano-node-${version}"; \
+cd "cardano-node-${version}"; \
 git fetch --all --recurse-submodules --tags; \
-git checkout tags/${cardano_node_version}; \
-cd ..; \
-tar cvzf cardano-node_${cardano_node_version}.orig.tar.gz cardano-node-${cardano_node_version}; \
-cd cardano-node-${cardano_node_version}; \
-unset cardano_node_version; \
+git checkout "tags/${version}"; \
+unset version basedir; \
+
 git clone https://github.com/TerminadaPool/cardano-node-debian.git debian; \
 
 debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc;
 ```
 
 Your deb will be produced in the parent directory: ~/src/cardano-node/  
-And named something like: cardano-node_1.35.7-1_amd64.deb
+And named like: cardano-node_8.0.0_amd64.deb  
+
+Nb. debuild switches:  
+* -b: build binary packages only
+* -uc: No signing of chainlog
+* -us: No signing of source code
 
 ****
 ****

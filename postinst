@@ -5,6 +5,7 @@ set -e
 if [ "$1" = "configure" ]; then
   CONFIG_DIR='/etc/cardano'
   HOME_DIR='/var/lib/cardano'
+  LOG_DIR='/var/log/cardano'
   if ! getent passwd cardano >/dev/null; then
     # Defaults to create group=cardano, home=/home/cardano
     adduser --quiet --system --group --shell '/bin/bash' --home "${HOME_DIR}" cardano
@@ -15,12 +16,14 @@ if [ "$1" = "configure" ]; then
   # private readable by cardano so cn-leaderlog script can read keys as cardano
   [ ! -d "${CONFIG_DIR}/private" ] && install -d -m 0750 -o root -g cardano "${CONFIG_DIR}/private"
   # Nb. home directory /var/lib/cardano created above with adduser command
+  # Create log directory for storing leaderlogs or other custom logs
+  [ ! -d "${LOG_DIR}" ] && install -d -m 0700 -o cardano -g cardano "${LOG_DIR}"
 
   IOG_CONFIG_SRC='https://book.world.dev.cardano.org/environments'
   echo "Downloading missing configuration files."
   cd "${CONFIG_DIR}"
   for net in mainnet preprod preview; do
-    for part in config topology byron-genesis shelley-genesis alonzo-genesis; do
+    for part in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
       echo -n "  ${CONFIG_DIR}/${net}-${part}.json ..."
       if [ -f "${net}-${part}.json" ]; then
         echo " exists."

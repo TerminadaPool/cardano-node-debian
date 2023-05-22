@@ -10,7 +10,7 @@ export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 override_dh_auto_configure:
 	cabal update
-	cabal configure --with-compiler=ghc-8.10.7 --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
+	cabal configure --with-compiler=ghc-9.2.7 --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
 	#cabal update
 	echo "package cardano-crypto-praos" >>  cabal.project.local
 	echo "  flags: -external-libsodium-vrf" >>  cabal.project.local
@@ -33,13 +33,14 @@ override_dh_auto_configure:
 	echo "source-repository-package" >> cabal.project.local
 	echo "  type: git" >> cabal.project.local
 	echo "  location: https://github.com/input-output-hk/hjsonschema" >> cabal.project.local
-	echo "  tag: 1546af7fc267d5eea805ef223dd2b59ac120b784" >> cabal.project.local
+	#echo "  tag: 1546af7fc267d5eea805ef223dd2b59ac120b784" >> cabal.project.local
+	echo "  tag: 792ca3398d723a3bfba2c4aef3fb84d0474b205f" >> cabal.project.local
 	echo "" >> cabal.project.local
-	echo "source-repository-package" >> cabal.project.local
-	echo "  type: git" >> cabal.project.local
-	echo "  location: https://github.com/haskell-works/hw-aeson" >> cabal.project.local
-	echo "  tag: d99d2f3e39a287607418ae605b132a3deb2b753f" >> cabal.project.local
-	echo "" >> cabal.project.local
+	#echo "source-repository-package" >> cabal.project.local
+	#echo "  type: git" >> cabal.project.local
+	#echo "  location: https://github.com/haskell-works/hw-aeson" >> cabal.project.local
+	#echo "  tag: d99d2f3e39a287607418ae605b132a3deb2b753f" >> cabal.project.local
+	#echo "" >> cabal.project.local
 	echo "source-repository-package" >> cabal.project.local
 	echo "  type: git" >> cabal.project.local
 	echo "  location: https://github.com/input-output-hk/cardano-addresses" >> cabal.project.local
@@ -57,7 +58,7 @@ override_dh_auto_build:
 	cabal -O2 build bech32
 	cabal -O2 build cardano-submit-api
 	cabal -O2 build cardano-addresses-cli
-	#cabal -O2 build cardano-ping --disable-tests --disable-profiling
+	#cabal -O2 build cardano-ping
 
 override_dh_auto_install:
 	mkdir -p debian/cardano-node/usr/bin

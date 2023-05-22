@@ -7,15 +7,16 @@ case "$1" in
   purge)
     CONFIG_DIR='/etc/cardano'
     HOME_DIR='/var/lib/cardano'
+    LOG_DIR='/var/log/cardano'
     # Remove Cardano config files
     for net in mainnet preprod preview; do
-      for part in config topology byron-genesis shelley-genesis alonzo-genesis; do
+      for part in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
         rm -f "${CONFIG_DIR}/${net}-${part}.json"
       done
     done
     rm -f "${CONFIG_DIR}/my-cardano-node-config.json"
-    # Remove config directories. Nb. private subdir not removed if non-empty
-    for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}"; do
+    # Remove config and log directories. Remove private and log only if empty
+    for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}" "${LOG_DIR}"; do
       rmdir --ignore-fail-on-non-empty "${directory}"
     done
     # Remove home directory dotfiles that can get automatically created

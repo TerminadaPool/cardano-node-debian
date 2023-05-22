@@ -1,19 +1,19 @@
 Source: cardano-node
 Section: misc
 Priority: optional
-Build-Depends: debhelper ( >= 11), pkg-config
-Maintainer: builder <builder@build.terminada.io>
-Standards-Version: 4.4.0
-Vcs-Git: git://github.com/input-output-hk/cardano-node.git
-Vcs-Browser: https://github.com/input-output-hk/cardano-node.git
+Maintainer: builder <builder@itmedico.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
 Homepage: https://cardano.org
+Vcs-Browser: https://github.com/input-output-hk/cardano-node.git
+Vcs-Git: git://github.com/input-output-hk/cardano-node.git
+Rules-Requires-Root: no
 
 Package: cardano-node
-Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, curl, jq
-Pre-Depends: ${misc:Pre-Depends}
 Architecture: any
-Multi-Arch: same
-Description: Blockchain platform for changemakers, innovators, and visionaries,
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, curl, jq
+Description: Node software for Cardano proof-of-stake blockchain
+ Blockchain platform for changemakers, innovators, and visionaries,
  with the tools and technologies required to create possibility for many, as
  well as the few, and bring about positive global change.
  .
@@ -23,5 +23,5 @@ Description: Blockchain platform for changemakers, innovators, and visionaries,
  sustainability to decentralized applications, systems, and societies.
  .
  With a leading team of engineers, Cardano exists to redistribute power from
- unaccountable structures to the margins – to individuals – and be an enabling
+ unaccountable structures to the margins to individuals and be an enabling
  force for positive change and progress.
