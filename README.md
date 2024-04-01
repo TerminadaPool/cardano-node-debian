@@ -56,6 +56,51 @@ sudo su - builder
 The rest of this document assumes you are using your 'builder' account:  
 builder@build:~$
 
+## Install GHC and Cabal
+```
+curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+```
+Select 'N' to everything when asked. We will set up path manually.  
+
+The following is an example transcript:  
+> ghcup installs only into the following directory,  
+> which can be removed anytime:  
+>   /home/builder/.ghcup  
+> 
+> Press ENTER to proceed or ctrl-c to abort.  
+> 
+> Do you want ghcup to automatically add the required PATH variable to "/root/.bashrc"?  
+> [P] Yes, prepend  [A] Yes, append  [N] No  [?] Help (default is "P").  
+> N
+>
+> Do you want to install haskell-language-server (HLS)?  
+> [Y] Yes  [N] No  [?] Help (default is "N").  
+> N
+>
+> Do you want to install stack?  
+> [Y] Yes  [N] No  [?] Help (default is "N").  
+> N
+> 
+> System requirements  
+>   Please install the following distro packages: build-essential curl libffi-dev libffi7 libgmp-dev libgmp10 libncurses-dev libncurses5 libtinfo5  
+> 
+> Press ENTER to proceed or ctrl-c to abort.  
+
+These 'system requirements' packages should already have been installed above so just press enter.
+
+## Setup $PATH in ~/.bashrc to include cabal and ghcup bin directories
+```
+echo '[[ ":$PATH:" != *":$HOME/.ghcup/bin:"* ]] && PATH="$HOME/.ghcup/bin:$PATH"' >> ${HOME}/.bashrc; \
+echo '[[ ":$PATH:" != *":$HOME/.cabal/bin:"* ]] && PATH="$HOME/.cabal/bin:$PATH"' >> ${HOME}/.bashrc; \
+echo 'export PATH' >> ${HOME}/.bashrc; \
+source ${HOME}/.bashrc;
+```
+Check versions
+```
+ghcup --version; \
+cabal --version
+```
+
 ## Check the latest cardano-node release version
 See: https://github.com/intersectMBO/cardano-node  
 Or from the command line with:  
@@ -83,19 +128,19 @@ mkdir -p "${basedir}"; \
 cd "${basedir}"; \
 rm -rf "${package}-${CARDANO_NODE_VERSION}"; \
 
-git clone https://github.com/input-output-hk/cardano-node.git "cardano-node-${CARDANO_NODE_VERSION}"; \
+# cardano-node source
+git clone https://github.com/IntersectMBO/cardano-node.git "cardano-node-${CARDANO_NODE_VERSION}"; \
 cd "cardano-node-${CARDANO_NODE_VERSION}"; \
 git fetch --all --recurse-submodules --tags; \
 git checkout "tags/${CARDANO_NODE_VERSION}"; \
+
+# deb packages build instructions
 git clone https://github.com/TerminadaPool/cardano-node-debian.git debian; \
 unset CARDANO_NODE_VERSION package basedir; \
+
+# build deb packages
 debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b;
 ```
-
-Nb. debuild switches:  
-* -b: build binary packages only
-* -uc: No signing of chainlog
-* -us: No signing of source code
 
 Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".  They will be named something like:  
 * cardano-cli_8.9.1_amd64.deb
@@ -103,19 +148,49 @@ Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".
 
 Put these files in your own local debian repository and install them on every machine required using apt.
 
-## Notes
-* The ghc and cabal versions used for compilation are configured in the [rules](https://github.com/TerminadaPool/cardano-node-debian/blob/master/rules) file.
+## Notes:
+* The ghc and cabal versions used for compilation are configured in [rules](https://github.com/TerminadaPool/cardano-node-debian/blob/master/rules) file.
 * cabal.project.local is also configured in [rules](https://github.com/TerminadaPool/cardano-node-debian/blob/master/rules) file.
 * Both cardano-node and cardano-cli packages are configured to depend upon the IOG specified versions of libsodium (libsodium23-iog) and libsecp256k1 (libsecp256k1-2-iog).  See: [control](https://github.com/TerminadaPool/cardano-node-debian/blob/master/control) file.
-* When cardano-node deb package is installed, it creates a user account 'cardano' and copies default configuration files from: https://book.play.dev.cardano.org/environments.html to /etc/cardano directory.  See: [cardano-node.postinst](https://github.com/TerminadaPool/cardano-node-debian/blob/master/cardano-node.postinst).
-* If cardano-node deb package is purged from the system then an attempt will be made to remove standard configuration files and the /etc/cardano directory if it is subsequently empty.  However, the 'cardano' user will be left on the system.  See: [cardano-node.postrm](https://github.com/TerminadaPool/cardano-node-debian/blob/master/cardano-node.postrm).
-* There are some additional simple tools in the [bin subdirectory](https://github.com/TerminadaPool/cardano-node-debian/blob/master/bin) which get installed in /usr/bin/ on the system.
+* If cardano-node deb package is purged from the system then unaltered configuration files will be removed as well as /etc/cardano directory if it is subsequently empty.  However, the 'cardano' user will be left on the system.  See: [cardano-node.postrm](https://github.com/TerminadaPool/cardano-node-debian/blob/master/cardano-node.postrm).
+* There are example configuration files installed to '/etc/cardano/{mainnet,preprod,preview}/pooltool-api-key'. The script [cn-monitor-block-delay](https://github.com/TerminadaPool/cardano-node-debian/blob/master/bin/cn-monitor-block-delay) can use these files to obtain the "Pooltool Api Key" without obtaining such information from the command line where it is visible to tools like 'ps'.
+* The systemd [cardano-node service](https://github.com/TerminadaPool/cardano-node-debian/blob/master/cardano-node.service) file will optionally configure its $SERVICE_PORT from /etc/cardano/{mainnet,preprod,preview}/service-port if such file contains a SERVICE_PORT=VALUE line (Eg: SERVICE_PORT=3001).
+* There are some additional simple tools in the [bin subdirectory](https://github.com/TerminadaPool/cardano-node-debian/blob/master/bin) which get installed to /usr/bin/ on the system.
 
 
-Expect to see the following lintian errors at the end of the build process:  
-> 
+* Expect to see lintian errors like the following at the end of the build process:  
+> E: cardano-cli: embedded-library libyaml [usr/bin/cardano-cli]  
+> E: cardano-cli: embedded-library libyaml [usr/bin/cardano-submit-api]  
+> E: cardano-node: embedded-library libyaml [usr/bin/cardano-node]  
+> E: cardano-cli-dbgsym: unpack-message-for-deb-data Output from 'readelf --all --wide usr/lib/debug/.build-id/38/6c97fd1b0d66cdf82ce266e02753ec53350991.debug' is not valid UTF-8  
+> E: cardano-cli-dbgsym: unpack-message-for-deb-data Output from 'readelf --all --wide usr/lib/debug/.build-id/74/a3012a640a238f66de1826f93f0a77b7dcb007.debug' is not valid UTF-8  
+> E: cardano-cli-dbgsym: unpack-message-for-deb-data Output from 'readelf --all --wide usr/lib/debug/.build-id/fa/db822a91370d4704149b863a99d11587429f8c.debug' is not valid UTF-8  
+> E: cardano-node-dbgsym: unpack-message-for-deb-data Output from 'readelf --all --wide usr/lib/debug/.build-id/5b/47687ea24048b81acfe15296947430f48b617e.debug' is not valid UTF-8  
+> W: cardano-cli-dbgsym: debug-file-with-no-debug-symbols [usr/lib/debug/.build-id/38/6c97fd1b0d66cdf82ce266e02753ec53350991.debug]  
+> W: cardano-cli-dbgsym: debug-file-with-no-debug-symbols [usr/lib/debug/.build-id/74/a3012a640a238f66de1826f93f0a77b7dcb007.debug]  
+> W: cardano-cli-dbgsym: debug-file-with-no-debug-symbols [usr/lib/debug/.build-id/fa/db822a91370d4704149b863a99d11587429f8c.debug]  
+> W: cardano-node-dbgsym: debug-file-with-no-debug-symbols [usr/lib/debug/.build-id/5b/47687ea24048b81acfe15296947430f48b617e.debug]  
+> W: cardano-cli: hardening-no-pie [usr/bin/bech32]  
+> W: cardano-cli: hardening-no-pie [usr/bin/cardano-cli]  
+> W: cardano-cli: hardening-no-pie [usr/bin/cardano-submit-api]  
+> W: cardano-node: hardening-no-pie [usr/bin/cardano-node]  
+> W: cardano-cli: no-manual-page [usr/bin/bech32]  
+> W: cardano-cli: no-manual-page [usr/bin/cardano-cli]  
+> W: cardano-cli: no-manual-page [usr/bin/cardano-submit-api]  
+> W: cardano-cli: no-manual-page [usr/bin/cn-date-to-slot]  
+> W: cardano-cli: no-manual-page [usr/bin/cn-slot-to-date]  
+> W: cardano-node: no-manual-page [usr/bin/cardano-node]  
+> W: cardano-node: no-manual-page [usr/bin/cn-leaderlog]  
+> W: cardano-node: no-manual-page [usr/bin/cn-monitor-block-delay]  
+> W: cardano-node: no-manual-page [usr/bin/cn-update-topology]  
+
+debuild switches:  
+* -b: build binary packages only  
+* -uc: No signing of chainlog  
+* -us: No signing of source code  
 
 
 ### References
-See: https://github.com/input-output-hk/cardano-node-wiki/blob/main/docs/getting-started/install.md
+* [Compiling cardano-node](https://github.com/input-output-hk/cardano-node-wiki/blob/main/docs/getting-started/install.md)
+* [Configuration files](https://book.play.dev.cardano.org/environments.html)
 

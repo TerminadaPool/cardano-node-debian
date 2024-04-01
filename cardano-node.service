@@ -5,32 +5,70 @@ Requires=network.target
 [Service]
 Type=simple
 SyslogIdentifier=cardano-node
-Restart=always
-RestartSec=5
-TimeoutStopSec=300
-Nice=-7
-RuntimeDirectory=cardano
 User=cardano
 Group=cardano
+Restart=always
+RestartSec=5
+TimeoutStopSec=120
+Nice=-7
 KillSignal=SIGINT
 LimitNOFILE=32768
-Environment='PORT=3001'
-# Default PORT can be overridden in MY_CARDANO_NODE_CONFIG
-Environment='MY_CARDANO_NODE_CONFIG=/etc/cardano/my-cardano-node-config.json'
-ExecStart=sh -c "\
-if [ -f ${MY_CARDANO_NODE_CONFIG} ]; then \
-  PORT=$$(jq --arg PORT ${PORT} '.port // ($PORT | tonumber)' ${MY_CARDANO_NODE_CONFIG}); \
-else \
-  PORT=${PORT}; \
-fi; \
-cardano-node +RTS -N -RTS run \
+
+# SERVICE_PORT can be overridden in EnvironmentFile
+Environment='SERVICE_PORT=3001'
+EnvironmentFile=-/etc/cardano/mainnet/service-port
+ExecStart=cardano-node +RTS -N -RTS run \
   --host-addr 0.0.0.0 \
-  --port $${PORT} \
-  --topology /etc/cardano/mainnet-topology.json \
-  --database-path /var/lib/cardano \
-  --socket-path /run/cardano/mainnet-node.socket \
-  --config /etc/cardano/mainnet-config.json \
-"
+  --port ${SERVICE_PORT} \
+  --config /etc/cardano/mainnet/config.json \
+  --topology /etc/cardano/mainnet/topology.json \
+  --database-path /var/lib/cardano/mainnet \
+  --socket-path /run/cardano/mainnet/node.socket \
+
+#-----------#
+# Hardening #
+#-----------#
+# See: https://blog.sergeantbiggs.net/posts/hardening-applications-with-systemd/
+# See: https://www.sherbers.de/use-temporaryfilesystem-to-hide-files-or-directories-from-systemd-services/
+
+## File system
+#ProtectSystem=strict scores better than TemporaryFileSystem with: 'systemd-analyze security cardano-node.service'
+ProtectSystem=strict
+ConfigurationDirectory=cardano/mainnet
+RuntimeDirectory=cardano/mainnet
+StateDirectory=cardano/mainnet
+LogsDirectory=cardano/mainnet
+#TemporaryFileSystem=/:ro
+#BindReadOnlyPaths=/lib/ /lib64/ /usr/lib/ /usr/lib64/ /etc/ld.so.cache /etc/ld.so.conf /etc/ld.so.conf.d/ /etc/bindresvport.blacklist /usr/share/zoneinfo/ /usr/share/locale/ /etc/localtime /usr/share/common-licenses/ /etc/ssl/certs/ /etc/alternatives/ /etc/resolv.conf /etc/hosts
+#BindReadOnlyPaths=/dev/log /run/systemd/journal/socket /run/systemd/journal/stdout /run/systemd/notify
+#BindReadOnlyPaths=/usr/bin/cardano-node
+PrivateDevices=true
+PrivateTmp=true
+ProtectKernelLogs=true
+ProtectProc=invisible
+PrivateUsers=true
+ProtectHome=true
+UMask=0077
+
+## System
+RestrictNamespaces=true
+LockPersonality=true
+NoNewPrivileges=true
+ProtectKernelModules=true
+SystemCallArchitectures=native
+ProtectHostname=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+ProtectClock=true
+RemoveIPC=true
+
+## Capabilities and syscalls
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
 
 [Install]
 WantedBy=multi-user.target

@@ -9,17 +9,10 @@ case "$1" in
     HOME_DIR='/var/lib/cardano'
     LOG_DIR='/var/log/cardano'
 
-    # Remove Cardano config files automatically installed
+    # Remove all configuration, and log directories only if empty
     for net in mainnet preprod preview; do
-      for part in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
-        rm -f "${CONFIG_DIR}/${net}-${part}.json"
-      done
+      rmdir --ignore-fail-on-non-empty "${CONFIG_DIR}/${net}"
     done
-
-    # Remove my-cardano-node-config.json
-    rm -f "${CONFIG_DIR}/my-cardano-node-config.json"
-
-    # Remove config, config/private, and log directories only if empty
     for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}" "${LOG_DIR}"; do
       rmdir --ignore-fail-on-non-empty "${directory}"
     done
@@ -30,7 +23,7 @@ case "$1" in
     #done
 
     # Don't delete user. No way to check if files owned by user are left
-    # userdel --remove cardano # 'deluser --remove-home' refuses home deletion in /var
+    #userdel --remove cardano # 'deluser --remove-home' refuses home deletion in /var
 esac
 
 #DEBHELPER#
