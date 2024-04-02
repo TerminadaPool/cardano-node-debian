@@ -62,9 +62,12 @@ override_dh_auto_build:
 	#cabal -O2 build cardano-addresses-cli
 
 override_dh_auto_install:
+	# cardano-node deb
 	mkdir -p debian/cardano-node/usr/bin
-	mkdir -p debian/cardano-cli/usr/bin
 	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
+	debian/build_default_configs
+	# cardano-cli deb
+	mkdir -p debian/cardano-cli/usr/bin
 	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-cli/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-cli/usr/bin/
 	cp -p $(shell ./scripts/bin-path.sh cardano-submit-api) debian/cardano-cli/usr/bin/

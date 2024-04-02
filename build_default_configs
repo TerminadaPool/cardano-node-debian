@@ -1,0 +1,29 @@
+#!/bin/sh
+# Author: builder@build.terminada.io
+# Created: 20240331
+
+set -e
+
+IOG_CONFIG_SRC='https://book.play.dev.cardano.org/environments'
+DOWNLOAD_DIR='debian/cardano-node/etc/cardano'
+
+# Download default configuration files
+for net in mainnet preprod preview; do
+  DOWNLOAD_NET_DIR="${DOWNLOAD_DIR}/${net}"
+  mkdir -p "${DOWNLOAD_NET_DIR}"
+  # Create example poolid, pooltool-api-key KEY=VALUE files
+  for key in POOL_ID POOLTOOL_API_KEY; do
+    keyfile="$(echo "${key}" | tr '_[:upper:]' '-[:lower:]')"
+    echo "${key}=#FIXME" > "${DOWNLOAD_NET_DIR}/${keyfile}"
+  done
+  echo "Downloading default configuration files for ${net}"
+  for cfg in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
+    echo -n "  ${DOWNLOAD_NET_DIR}/${cfg}.json ..."
+    if curl -sL "${IOG_CONFIG_SRC}/${net}/${cfg}.json" -o "${DOWNLOAD_NET_DIR}/${cfg}.json" --max-time 20; then
+      echo " Success."
+    else
+      echo " WARNING: Download FAILED!"
+    fi
+  done
+done
+

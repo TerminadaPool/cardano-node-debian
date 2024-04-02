@@ -20,10 +20,10 @@ EnvironmentFile=-/etc/cardano/mainnet/service-port
 ExecStart=cardano-node +RTS -N -RTS run \
   --host-addr 0.0.0.0 \
   --port ${SERVICE_PORT} \
+  --socket-path /run/cardano/mainnet/node.socket \
   --config /etc/cardano/mainnet/config.json \
   --topology /etc/cardano/mainnet/topology.json \
-  --database-path /var/lib/cardano/mainnet \
-  --socket-path /run/cardano/mainnet/node.socket \
+  --database-path /var/lib/cardano/mainnet
 
 #-----------#
 # Hardening #
