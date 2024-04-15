@@ -23,7 +23,7 @@ ExecStart=cardano-node +RTS -N -RTS run \
   --socket-path /run/cardano/mainnet/node.socket \
   --config /etc/cardano/mainnet/config.json \
   --topology /etc/cardano/mainnet/topology.json \
-  --database-path /var/lib/cardano/mainnet
+  --database-path /var/lib/cardano/mainnet/db
 
 #-----------#
 # Hardening #
