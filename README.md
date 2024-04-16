@@ -131,7 +131,7 @@ rm -rf ${HOME}/.cabal/store
 The following sequence of commands will remove and recreate the "${HOME}/src/cardano-node" directory.  Familiarise yourself with the following commands before running them.  You can simply copy and paste the entire list of commands below into a bash terminal to run them in sequence.
 ## Build cardano-node and cardano-cli deb packages
 ```
-CARDANO_NODE_VERSION='8.9.1'; \
+CARDANO_NODE_VERSION='8.9.2'; \
 package='cardano-node'
 basedir="${HOME}/src/${package}"; \
 
