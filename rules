@@ -5,6 +5,7 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+# Check ghc version history at: https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/version-history
 ghc_version=9.8.2
 cabal_version=3.10.2.1
 

@@ -1,5 +1,5 @@
-cardano-node (8.9.2) UNRELEASED; urgency=medium
+cardano-node (8.9.3) UNRELEASED; urgency=medium
 
   * New upstream version
 
- -- builder <builder@build.terminada.io>  Tue, 16 Apr 2024 23:58:00 +1000
+ -- builder <builder@build.terminada.io>  Thu, 30 May 2024 10:23:00 +1000
