@@ -137,7 +137,7 @@ The following sequence of commands will remove and recreate the "${HOME}/src/car
 
 ## Build cardano-node and cardano-cli deb packages
 ```
-CARDANO_NODE_VERSION='8.9.3'; \
+CARDANO_NODE_VERSION='8.12.1'; \
 package='cardano-node'
 basedir="${HOME}/src/${package}"; \
 
