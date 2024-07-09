@@ -137,7 +137,11 @@ The following sequence of commands will remove and recreate the "${HOME}/src/car
 
 ## Build cardano-node and cardano-cli deb packages
 ```
-CARDANO_NODE_VERSION='8.12.1'; \
+deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'; \
+cardano_node_repo='https://github.com/IntersectMBO/cardano-node.git'; \
+
+CARDANO_NODE_VERSION='9.0.0'; \
+
 package='cardano-node'
 basedir="${HOME}/src/${package}"; \
 
@@ -146,22 +150,22 @@ cd "${basedir}"; \
 rm -rf "${package}-${CARDANO_NODE_VERSION}"; \
 
 # cardano-node source
-git clone https://github.com/IntersectMBO/cardano-node.git "cardano-node-${CARDANO_NODE_VERSION}"; \
+git clone "${cardano_node_repo}" "cardano-node-${CARDANO_NODE_VERSION}"; \
 cd "cardano-node-${CARDANO_NODE_VERSION}"; \
 git fetch --all --recurse-submodules --tags; \
 git checkout "tags/${CARDANO_NODE_VERSION}"; \
 
 # deb packages build instructions
-git clone https://github.com/TerminadaPool/cardano-node-debian.git debian; \
-unset CARDANO_NODE_VERSION package basedir; \
+git clone "${deb_build_instructions_repo}" debian; \
+unset cardano_node_repo deb_build_instructions_repo CARDANO_NODE_VERSION package basedir; \
 
 # build deb packages
 debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b;
 ```
 
 Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".  They will be named something like:
->cardano-cli_8.9.1_amd64.deb  
->cardano-node_8.9.1_amd64.deb  
+>cardano-cli_8.12.2_amd64.deb  
+>cardano-node_8.12.2_amd64.deb  
 
 Put these files in your own local debian repository and install them on every machine required using apt.
 
