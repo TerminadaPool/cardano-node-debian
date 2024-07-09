@@ -164,8 +164,8 @@ debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b;
 ```
 
 Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".  They will be named something like:
->cardano-cli_8.12.2_amd64.deb  
->cardano-node_8.12.2_amd64.deb  
+>cardano-cli_9.0.0_amd64.deb  
+>cardano-node_9.0.0_amd64.deb  
 
 Put these files in your own local debian repository and install them on every machine required using apt.
 
