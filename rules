@@ -63,7 +63,6 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	bash_completions_dir='usr/share/bash-completion/completions'
-
 	#------------------#
 	# cardano-node deb #
 	#------------------#
@@ -73,7 +72,6 @@ override_dh_auto_install:
 	# bash completions
 	mkdir -p "debian/cardano-node/${bash_completions_dir}"
 	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-node > "debian/cardano-node/${bash_completions_dir}/cardano-node"
-
 	#-----------------#
 	# cardano-cli deb #
 	#-----------------#
