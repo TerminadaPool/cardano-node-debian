@@ -63,15 +63,6 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	bash_completions_dir='usr/share/bash-completion/completions'
-	#------------------#
-	# cardano-node deb #
-	#------------------#
-	mkdir -p debian/cardano-node/usr/bin
-	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
-	debian/build_default_configs
-	# bash completions
-	mkdir -p "debian/cardano-node/${bash_completions_dir}"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-node > "debian/cardano-node/${bash_completions_dir}/cardano-node"
 	#-----------------#
 	# cardano-cli deb #
 	#-----------------#
@@ -84,6 +75,15 @@ override_dh_auto_install:
 	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script bech32 > "debian/cardano-cli/${bash_completions_dir}/bech32"
 	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-cli > "debian/cardano-cli/${bash_completions_dir}/cardano-cli"
 	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-submit-api > "debian/cardano-cli/${bash_completions_dir}/cardano-submit-api"
+	#------------------#
+	# cardano-node deb #
+	#------------------#
+	mkdir -p debian/cardano-node/usr/bin
+	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
+	debian/build_default_configs
+	# bash completions
+	mkdir -p "debian/cardano-node/${bash_completions_dir}"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-node > "debian/cardano-node/${bash_completions_dir}/cardano-node"
 
 
 override_dh_installsystemd:
