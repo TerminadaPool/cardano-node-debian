@@ -140,7 +140,7 @@ The following sequence of commands will remove and recreate the "${HOME}/src/car
 deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'; \
 cardano_node_repo='https://github.com/IntersectMBO/cardano-node.git'; \
 
-CARDANO_NODE_VERSION='9.0.0'; \
+CARDANO_NODE_VERSION='9.1.0'; \
 
 package='cardano-node'
 basedir="${HOME}/src/${package}"; \
