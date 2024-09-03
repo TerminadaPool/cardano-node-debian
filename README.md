@@ -140,7 +140,7 @@ The following sequence of commands will remove and recreate the "${HOME}/src/car
 deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'; \
 cardano_node_repo='https://github.com/IntersectMBO/cardano-node.git'; \
 
-CARDANO_NODE_VERSION='9.1.0'; \
+CARDANO_NODE_VERSION='9.1.1'; \
 
 package='cardano-node'
 basedir="${HOME}/src/${package}"; \
@@ -157,10 +157,11 @@ git checkout "tags/${CARDANO_NODE_VERSION}"; \
 
 # deb packages build instructions
 git clone "${deb_build_instructions_repo}" debian; \
-unset cardano_node_repo deb_build_instructions_repo CARDANO_NODE_VERSION package basedir; \
 
 # build deb packages
-debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b;
+debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b; \
+
+unset cardano_node_repo deb_build_instructions_repo CARDANO_NODE_VERSION package basedir;
 ```
 
 Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".  They will be named something like:
