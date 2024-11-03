@@ -1,0 +1,120 @@
+#!/bin/bash
+# Author: terminada.io 20211031 updated 20240331
+set -o nounset
+set -o errexit
+set -o pipefail
+
+CONFIG_DIR='/etc/cardano' #FIXME
+CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}/node.socket"
+# If sending to pooltool then must set POOL_ID and POOLTOOL_API_KEY
+pool_id_file="${CONFIG_DIR}/${CONFIG_NET}/pool-id" #FIXME
+pooltool_api_key_file="${CONFIG_DIR}/${CONFIG_NET}/pooltool-api-key" #FIXME
+node_id_file="${CONFIG_DIR}/${CONFIG_NET}/node-id" #FIXME
+
+# https://forum.cardano.org/t/and-so-it-begins-reflections-on-this-first-shelley-epoch/37544
+# Shelley first slot: "2020-07-29 21:44:51 UTC", epoch 208, slot 4492800
+# printf '%s\n' "$(date -d"2020-07-29 21:44:51 UTC" "+%s") - 4492800" | bc # == 1591566291
+slot0sec=1591566291 # Slot 0 seconds since 1970-01-01 00:00:00 UTC
+
+function usage() {
+  cat << END_OF_USAGE >&2
+Usage: $(basename $0) [-s | --send]
+Follow system journal and print delay ms as each block added to tip
+
+    -s, --send        send information to pooltool.io
+    -h, --help        display this help and exit
+
+END_OF_USAGE
+}
+
+function err_exit() {
+  printf '%s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+function file_key_value() {
+  local f k v
+  f="$1"
+  k="$2"
+  if [[ -z "${f:-}" || -z "${k:-}" || ! -f "${f}" ]]; then
+    return 1
+  fi
+  while read -r line; do
+    v="$(printf '%s\n' "${line}" | sed -nr "s/^\s*${k}\s*=\s*["\""']?([^[:space:]"\""']+)["\""']?\s*(#.*)?$/\1/p")"
+    if [ -n "${v:-}" ]; then
+      break
+    fi
+  done <<< "$(grep -Ev '^\s*#|^\s*$' "${f}")" # Skip comment and blank lines
+  if [ -z "${v:-}" ]; then
+    return 1
+  fi
+  printf '%s\n' "${v}"
+  return 0
+}
+
+function write_log() {
+  local hash slot block delay
+  hash=$1; slot=$2; block=$3; delay=$4
+  printf 'Hash=%s,Slot=%d,Block=%d,Delayed=%0.3f\n' "$hash" "$slot" "$block" "$delay"
+}
+
+function send_pooltool() {
+  local hash slot block delay
+  hash="$1"; slot="$2"; block="$3"; delay="$4"
+  # Calculate time from slot + delay and round to 3 decimal places
+  timestamp="$(printf '%.3f' $(printf '%s\n' "$slot0sec + $slot + $delay" | bc))"
+  datetime="$(date --utc --date=@${timestamp} +"%FT%T.%3NZ")"
+  json="$(jq -cn --arg apiKey "$api_key" --arg poolId "$pool_id" \
+    --arg nodeId "$node_id" --arg version "$version" --arg at "$datetime" \
+    --arg blockNo "$block" --arg slotNo "$slot" \
+    --arg blockHash "$hash" --arg platform "$platform" \
+    '{apiKey: $apiKey, poolId: $poolId, data: {nodeId: $nodeId, version: $version, at: $at, blockNo: $blockNo | tonumber, slotNo: $slotNo | tonumber, blockHash: $blockHash, platform: $platform}}')"
+  response="$(curl -s -H "Accept: application/json" -H "Content-Type:application/json" -X POST --data "$json" 'https://api.pooltool.io/v0/sendstats' || true)" # '' if curl fails
+  success="$(printf '%s\n' "${response:-}" | jq -r '.success')"
+  if [[ "$success" == 'true' ]]; then result='success'; else result='failure'; fi;
+  printf 'Sent pooltool: %s Response: %s\n' "hash=${hash},slot=${slot},block=${block},datetime=${datetime}" "$result"
+}
+
+# Process optional command line arguments
+while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
+  opt="${1}"
+  shift
+  case "${opt}" in
+    '-s' | '--send' ) optsend='true';;
+    '-h' | '--help' ) usage; exit 0;;
+    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+  esac
+done
+
+# If sending to pooltool, set variables required
+if [[ "${optsend:-}" == "true" ]]; then
+  pool_id="$(file_key_value "${pool_id_file}" 'POOL_ID')" || err_exit "${pool_id_file} must contain POOL_ID=VALUE"
+  api_key="$(file_key_value "${pooltool_api_key_file}" 'POOLTOOL_API_KEY')" || err_exit "${pooltool_api_key_file} must contain POOLTOOL_API_KEY=VALUE"
+  node_id="$(file_key_value "${node_id_file}" 'NODE_ID')" || node_id='' # default
+  platform="$(basename $0)"
+  [[ "$(cardano-cli --version)" =~ cardano-cli\ ([\.0-9]+)\ .*rev\ ([a-f0-9]+)$ ]] || err_exit 'cardano-cli --version error'
+  version="${BASH_REMATCH[1]}:${BASH_REMATCH[2]:0:5}"
+fi
+
+printf '%s\n' "$(basename $0) following journal:"
+
+# regex for log when new block received "Chain extended, new tip:"
+regex='\[([-0-9]+)\ ([\.:0-9]+)\ UTC\]\ Chain\ extended,\ new\ tip:\ ([a-f0-9]+)\ at\ slot\ ([0-9]+)$'
+lasthash=''
+# follow journal unit cardano-node < <(journalctl -fn0 -u cardano-node)
+while IFS= read -r line; do
+  [[ "${line:-}" =~ $regex ]] || continue # skip logs not about new blocks
+  logtime="${BASH_REMATCH[1]}T${BASH_REMATCH[2]}Z"
+  loghash="${BASH_REMATCH[3]}"
+  logslot="${BASH_REMATCH[4]}"
+  [[ "${loghash}" != "${lasthash}" ]] || continue # skip log if same block
+  lasthash="$loghash"
+  # Get data from EKGView. \(.val) syntax for jq string interpolation
+  read -r block ekgslot delay < <(curl -s -H 'Accept: application/json' http:/localhost:12788 | jq -r '.cardano.node.metrics | "\(.blockNum.int.val) \(.slotNum.int.val) \(.blockfetchclient.blockdelay.s.val)"')
+  [[ "${ekgslot:-}" == "${logslot:-}" ]] || continue # skip if slots differ
+  [[ -z "${delay:-}" || "$delay" == 'null' || -z "${block:-}" || "$block" == 'null' ]] && continue # skip empty or null
+  write_log "$loghash" "$ekgslot" "$block" "$delay"
+  [[ "${optsend:-}" == 'true' ]] && send_pooltool "$loghash" "$ekgslot" "$block" "$delay"
+done < <(journalctl -fn0 -u cardano-node)
+

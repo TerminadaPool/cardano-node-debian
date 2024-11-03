@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ]; then
+  CONFIG_DIR='/etc/cardano'
+  HOME_DIR='/var/lib/cardano'
+  LOG_DIR='/var/log/cardano'
+
+  # Create user 'cardano' if not already present
+  if ! getent passwd cardano >/dev/null; then
+    # Defaults to create group=cardano, home=/home/cardano
+    # Home directory /var/lib/cardano created by adduser command
+    adduser --quiet --system --group --shell '/bin/bash' --home "${HOME_DIR}" cardano
+  fi
+
+  # Create private key and log directories
+  # private readable by cardano so cn-leaderlog script can read keys when run as cardano user
+  [ ! -d "${CONFIG_DIR}/private" ] && install -d -m 0750 -o root -g cardano "${CONFIG_DIR}/private"
+  # Create log directory for storing leaderlogs or other custom logs
+  [ ! -d "${LOG_DIR}" ] && install -d -m 0700 -o cardano -g cardano "${LOG_DIR}"
+
+  # Example pooltool-api-key may get edited to contain private data
+  for net in mainnet preprod preview; do
+    pooltool_api_key_file="${CONFIG_DIR}/${net}/pooltool-api-key"
+    if [ -f "${pooltool_api_key_file}" ]; then
+      chgrp cardano "${pooltool_api_key_file}"
+      chmod 0640 "${pooltool_api_key_file}"
+    fi
+  done
+fi
+
+#DEBHELPER#
+
+exit 0

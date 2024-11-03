@@ -1,0 +1,88 @@
+#!/bin/bash
+# Author: terminada.io 20220704, updated 20240331
+set -o errexit
+set -o pipefail
+set -o nounset
+
+# CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet/node.socket' cardano-cli query leadership-schedule --mainnet --genesis /etc/cardano/mainnet/shelley-genesis.json --stake-pool-id "blahblahblah" --vrf-signing-key-file /etc/cardano/private/vrf.skey --current
+
+CONFIG_DIR='/etc/cardano' #FIXME
+CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}/node.socket" #FIXME
+pool_vrf_skey="${CONFIG_DIR}/private/vrf.skey" #FIXME
+shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}/shelley-genesis.json"
+nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
+pool_id_file="${CONFIG_DIR}/${CONFIG_NET}/pool-id" #FIXME
+
+function usage() {
+  cat << END_OF_USAGE >&2
+Usage: $(basename $0) current | next
+Generates leaderlog for current or next epoch
+
+    -h, --help        display this help and exit
+
+END_OF_USAGE
+}
+
+function err_exit() {
+  printf '%s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+function file_key_value() {
+  local f k v
+  f="$1"
+  k="$2"
+  if [[ -z "${f:-}" || -z "${k:-}" || ! -f "${f}" ]]; then
+    return 1
+  fi
+  while read -r line; do
+    v="$(printf '%s\n' "${line}" | sed -nr "s/^\s*${k}\s*=\s*["\""']?([^[:space:]"\""']+)["\""']?\s*(#.*)?$/\1/p")"
+    if [ -n "${v:-}" ]; then
+      break
+    fi
+  done <<< "$(grep -Ev '^\s*#|^\s*$' "${f}")" # Skip comment and blank lines
+  if [ -z "${v:-}" ]; then
+    return 1
+  fi
+  printf '%s\n' "${v}"
+  return 0
+}
+
+# Process optional command line arguments
+while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
+  opt="${1}"
+  shift
+  case "${opt}" in
+    '-h' | '--help' ) usage; exit 0;;
+    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+  esac
+done
+
+# Should be only current | next command line argument remaining
+if [[ $# != 1 || ! "${1}" =~ ^(current|next)$ ]]; then
+  err_exit "Try '$(basename $0) --help' for more information"
+fi
+epoch="$1"
+
+pool_id="$(file_key_value "${pool_id_file}" 'POOL_ID')" || err_exit "${pool_id_file} must contain POOL_ID=VALUE"
+
+epoch_nr="$(cardano-cli query tip --testnet-magic "${nwmagic}" | jq '.epoch')"
+if [[ "$epoch" == 'next' ]]; then (( epoch_nr++ )); fi
+
+printf 'epoch %d, poolid %s\n' "${epoch_nr}" "${pool_id}"
+printf '%2s %-10s %s\n' 'No' '  Slot' 'Time'
+printf -- '--------------------------------------\n'
+regex='^\s+([0-9]+)\s+([0-9-]+\s[0-9:]+\s.*)$'
+count=0
+while IFS= read -r line; do
+  [[ "${line:-}" =~ $regex ]] || continue # skip lines not about blocks
+  slot="${BASH_REMATCH[1]}"
+  time="${BASH_REMATCH[2]}"
+  localtime=$(date -d "${time}" "+%Y-%m-%dT%H:%M:%S%z")
+  (( count++ )) || true # errexit
+  printf '%2d %10d %s\n' "${count}" "${slot}" "${localtime}"
+done < <(nice -n 15 cardano-cli query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
+printf -- '--------------------------------------\n'
+printf 'Total: %d assigned slots.\n' "$count"
+

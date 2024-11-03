@@ -1,0 +1,61 @@
+Source: cardano-node
+Section: misc
+Priority: optional
+Maintainer: builder <builder@terminada.io>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
+Homepage: https://cardano.org
+Vcs-Browser: https://github.com/input-output-hk/cardano-node.git
+Vcs-Git: git://github.com/input-output-hk/cardano-node.git
+Rules-Requires-Root: no
+
+Package: cardano-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsodium23-iog, libsecp256k1-2-iog
+Description: CLI software for Cardano proof-of-stake blockchain
+ Blockchain platform for changemakers, innovators, and visionaries,
+ with the tools and technologies required to create possibility for many, as
+ well as the few, and bring about positive global change.
+ .
+ Cardano is a proof-of-stake blockchain platform: the first to be founded on
+ peer-reviewed research and developed through evidence-based methods. It
+ combines pioneering technologies to provide unparalleled security and
+ sustainability to decentralized applications, systems, and societies.
+ .
+ With a leading team of engineers, Cardano exists to redistribute power from
+ unaccountable structures to the margins, to individuals, and be an enabling
+ force for positive change and progress.
+
+Package: cardano-node
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, cardano-cli, libsodium23-iog, libsecp256k1-2-iog, adduser, curl, jq
+Description: Node software for Cardano proof-of-stake blockchain
+ Blockchain platform for changemakers, innovators, and visionaries,
+ with the tools and technologies required to create possibility for many, as
+ well as the few, and bring about positive global change.
+ .
+ Cardano is a proof-of-stake blockchain platform: the first to be founded on
+ peer-reviewed research and developed through evidence-based methods. It
+ combines pioneering technologies to provide unparalleled security and
+ sustainability to decentralized applications, systems, and societies.
+ .
+ With a leading team of engineers, Cardano exists to redistribute power from
+ unaccountable structures to the margins, to individuals, and be an enabling
+ force for positive change and progress.
+
+Package: cardano-submit-api
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libsodium23-iog, libsecp256k1-2-iog
+Description: Submit api software for Cardano proof-of-stake blockchain
+ Blockchain platform for changemakers, innovators, and visionaries,
+ with the tools and technologies required to create possibility for many, as
+ well as the few, and bring about positive global change.
+ .
+ Cardano is a proof-of-stake blockchain platform: the first to be founded on
+ peer-reviewed research and developed through evidence-based methods. It
+ combines pioneering technologies to provide unparalleled security and
+ sustainability to decentralized applications, systems, and societies.
+ .
+ With a leading team of engineers, Cardano exists to redistribute power from
+ unaccountable structures to the margins, to individuals, and be an enabling
+ force for positive change and progress.

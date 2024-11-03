@@ -1,0 +1,31 @@
+#!/bin/sh
+# postrm script for cardano-node
+
+set -e
+
+case "$1" in
+  purge)
+    CONFIG_DIR='/etc/cardano'
+    HOME_DIR='/var/lib/cardano'
+    LOG_DIR='/var/log/cardano'
+
+    # Remove all configuration, and log directories only if empty
+    for net in mainnet preprod preview; do
+      rmdir --ignore-fail-on-non-empty "${CONFIG_DIR}/${net}"
+    done
+    for directory in "${CONFIG_DIR}/private" "${CONFIG_DIR}" "${LOG_DIR}"; do
+      rmdir --ignore-fail-on-non-empty "${directory}"
+    done
+
+    # Don't remove home directory dotfiles that get automatically created
+    #for dotfile in bash_history bashrc profile viminfo; do
+    #  rm -f "${HOME_DIR}/.${dotfile}"
+    #done
+
+    # Don't delete user. No way to check if files owned by user are left
+    #userdel --remove cardano # 'deluser --remove-home' refuses home deletion in /var
+esac
+
+#DEBHELPER#
+
+exit 0

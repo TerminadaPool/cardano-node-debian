@@ -1,0 +1,78 @@
+#!/bin/bash
+# Author: terminada.io 20240311
+set -o nounset
+set -o errexit
+set -o pipefail
+
+# https://forum.cardano.org/t/and-so-it-begins-reflections-on-this-first-shelley-epoch/37544
+# Shelley first slot: "2020-07-29 21:44:51 UTC", epoch 208, slot 4492800
+# echo $(date -d"2020-07-29 21:44:51 UTC" "+%s") - 4492800 | bc # == 1591566291
+slot0sec=1591566291 # Slot 0 seconds since 1970-01-01 00:00:00 UTC
+
+function usage() {
+  cat << END_OF_USAGE >&2
+Usage: $(basename $0) [-u|--utc] slotnumber"
+Display date corresponding to Cardano slot number
+
+    -u, --utc         For timezone UTC
+    -h, --help        display this help and exit
+
+Examples:
+  $(basename $0) 4492800
+  $(basename $0) --utc 4492800.123456789
+If no -u,--utc switch, local timezone assumed.
+
+END_OF_USAGE
+}
+
+function err_exit() {
+  printf '%s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+UTC=''
+# Process optional command line arguments
+while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
+  opt="${1}"
+  shift
+  case "${opt}" in
+    '-u' | '--utc' ) UTC='--utc';;
+    '-h' | '--help' ) usage; exit 0;;
+    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+  esac
+done
+
+function slotToDate() {
+  local slot decimal formatStr
+  slot="${1}" # might contain decimal
+  if [[ ! "${slot}" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    return 1 # malformed slot number
+  fi
+  slot="$( echo "${slot0sec} + ${slot}" | bc )"
+  decimal="${slot#*.}"
+  if [ "${decimal}" != "${slot}" ]; then
+    formatStr="+%Y-%m-%d %H:%M:%S.%${#decimal}N %Z"
+  else
+    formatStr='+%Y-%m-%d %H:%M:%S %Z'
+  fi
+  date ${UTC} -d "@${slot}" "${formatStr}"
+  return 0
+}
+
+# Process optional command line arguments
+while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
+  opt="${1}"
+  shift
+  case "${opt}" in
+    '-h' | '--help' ) usage; exit 0;;
+    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+  esac
+done
+
+# Should be only valid slot number command line argument remaining
+if [[ $# != 1 ]]; then
+  err_exit "Try '$(basename $0) --help' for more information"
+fi
+
+slotToDate "$1" || err_exit "Slot number malformed"
+

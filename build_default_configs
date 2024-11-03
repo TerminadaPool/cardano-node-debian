@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+IOG_CONFIG_SRC='https://book.play.dev.cardano.org/environments'
+CONFIG_DIR='/etc/cardano'
+
+# Download default cardano-node configuration files
+for net in mainnet preprod preview; do
+  DOWNLOAD_DIR="debian/cardano-node${CONFIG_DIR}/${net}"
+  mkdir -p "${DOWNLOAD_DIR}"
+  # Create example pool-id, pooltool-api-key KEY=VALUE files
+  for key in POOL_ID POOLTOOL_API_KEY; do
+    keyfile="$(echo "${key}" | tr '_[:upper:]' '-[:lower:]')"
+    echo "${key}=#FIXME" > "${DOWNLOAD_DIR}/${keyfile}"
+  done
+  echo "Downloading cardano-node default configuration files for ${net}"
+  for cfg in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
+    echo -n "  ${DOWNLOAD_DIR}/${cfg}.json ..."
+    if curl -sL "${IOG_CONFIG_SRC}/${net}/${cfg}.json" -o "${DOWNLOAD_DIR}/${cfg}.json" --max-time 20; then
+      echo " Success."
+    else
+      echo " WARNING: Download FAILED!"
+    fi
+  done
+done
+
+# Download default cardano-submit-api configuration files
+for net in mainnet preprod preview; do
+  DOWNLOAD_DIR="debian/cardano-submit-api${CONFIG_DIR}/${net}"
+  mkdir -p "${DOWNLOAD_DIR}"
+  echo "Downloading cardano-submit-api default configuration files for ${net}"
+  for cfg in submit-api-config; do
+    echo -n "  ${DOWNLOAD_DIR}/${cfg}.json ..."
+    if curl -sL "${IOG_CONFIG_SRC}/${net}/${cfg}.json" -o "${DOWNLOAD_DIR}/${cfg}.json" --max-time 20; then
+      echo " Success."
+    else
+      echo " WARNING: Download FAILED!"
+    fi
+  done
+done

@@ -1,0 +1,2 @@
+debian/bin/cn-leaderlog usr/bin
+debian/bin/cn-monitor-block-delay usr/bin

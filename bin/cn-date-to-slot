@@ -1,0 +1,65 @@
+#!/bin/bash
+# Author: terminada.io 20240311
+set -o nounset
+set -o errexit
+set -o pipefail
+
+# https://forum.cardano.org/t/and-so-it-begins-reflections-on-this-first-shelley-epoch/37544
+# Shelley first slot: "2020-07-29 21:44:51 UTC", epoch 208, slot 4492800
+# echo $(date -d"2020-07-29 21:44:51 UTC" "+%s") - 4492800 | bc # == 1591566291
+slot0sec=1591566291 # Slot 0 seconds since 1970-01-01 00:00:00 UTC
+
+function usage() {
+  cat << END_OF_USAGE >&2
+Usage: $(basename $0) 'YYYY-MM-DD HH:MM:SS.nnn'"
+Display Cardano slot corresponding to date
+
+    -h, --help        display this help and exit
+
+Examples:
+  $(basename $0) '2020-07-29 21:44:51 UTC'"
+  $(basename $0) '2020-07-29 21:44:51.123456789'"
+When no timezone, local timezone assumed.
+
+END_OF_USAGE
+}
+
+function err_exit() {
+  printf '%s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+function dateToSlot() {
+  local datetime decimal unixtime formatStr
+  datetime="${1}"
+  if [[ ! "${datetime}" =~ ^[-0-9]+\ [:0-9]+(\.[0-9]+)?( [A-Z]+)?$ ]]; then
+    return 1 # malformed date
+  fi
+  if [[ -n "${BASH_REMATCH[1]:-}" ]]; then # is there fractional seconds
+    decimal="${BASH_REMATCH[1]#.}" # how many digits in fractional seconds
+    formatStr="+%s.%${#decimal}N"
+  else
+    formatStr='+%s'
+  fi
+  unixtime="$( date -d "${datetime}" "${formatStr}" )" # Error if date malformed
+  printf '%s\n' "$( echo "${unixtime} - ${slot0sec}" | bc )"
+  return 0
+}
+
+# Process optional command line arguments
+while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
+  opt="${1}"
+  shift
+  case "${opt}" in
+    '-h' | '--help' ) usage; exit 0;;
+    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+  esac
+done
+
+# Should be only valid date command line argument remaining
+if [[ $# != 1 ]]; then
+  err_exit "Try '$(basename $0) --help' for more information"
+fi
+
+dateToSlot "$1" || err_exit "Date malformed"
+

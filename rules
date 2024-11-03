@@ -1,0 +1,98 @@
+#!/usr/bin/make -f
+export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+# Check ghc version history at: https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/version-history
+ghc_version=9.8.2
+#ghc_version=9.10.1
+cabal_version=3.10.3.0
+#cabal_version=3.12.1.0
+bash_completions_dir=usr/share/bash-completion/completions
+
+%:
+	dh $@ --with autoreconf -Bbuild
+
+override_dh_auto_configure:
+	ghcup upgrade
+	ghcup install ghc ${ghc_version}
+	ghcup set ghc ${ghc_version}
+	ghcup install cabal ${cabal_version}
+	ghcup set cabal ${cabal_version}
+	cabal update
+	echo "--------------------------------------------------"
+	echo "Haskell build environment:"
+	ghcup --version
+	ghc --version
+	cabal --version
+	echo "--------------------------------------------------"
+	echo
+	#cabal configure --with-compiler=ghc-${ghc_version} --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
+	#--------------------------------------------------------------------
+	# Custom cabal.project.local
+	#--------------------------------------------------------------------
+	echo "ignore-project: False" >> cabal.project.local
+	echo "with-compiler: ghc-${ghc_version}" >> cabal.project.local
+	echo "split-sections: True" >> cabal.project.local
+	echo "executable-stripping: True" >> cabal.project.local
+	echo "library-stripping: True" >> cabal.project.local
+	echo "optimization: 2" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "program-options" >> cabal.project.local
+	echo "  ghc-options: -fllvm" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "package *" >> cabal.project.local
+	echo "  optimization: 2" >> cabal.project.local
+	echo "  ghc-options: -fllvm" >> cabal.project.local
+	echo "" >> cabal.project.local
+	#--------------------------------------------------------------------
+	# Only for testing use external libsodium and enable additional iohk
+	# haskell code for crypto_vrf_ietfdraft13 functions
+	#--------------------------------------------------------------------
+	#echo "package cardano-crypto-praos" >>  cabal.project.local
+	#echo "  flags: -external-libsodium-vrf" >>  cabal.project.local
+	#echo "" >> cabal.project.local
+	#echo "package trace-dispatcher" >> cabal.project.local
+	#echo "  ghc-options: -Wwarn" >> cabal.project.local
+	#echo "" >> cabal.project.local
+
+override_dh_auto_build:
+	cabal build cardano-node
+	cabal build cardano-cli
+	cabal build bech32
+	cabal build cardano-submit-api
+	cabal build all
+
+override_dh_auto_install:
+	#-----------------#
+	# cardano-cli deb #
+	#-----------------#
+	mkdir -p debian/cardano-cli/usr/bin
+	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-cli/usr/bin/
+	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-cli/usr/bin/
+	# bash completions
+	mkdir -p "debian/cardano-cli/${bash_completions_dir}"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script bech32 > "debian/cardano-cli/${bash_completions_dir}/bech32"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-cli > "debian/cardano-cli/${bash_completions_dir}/cardano-cli"
+	#------------------#
+	# cardano-node deb #
+	#------------------#
+	mkdir -p debian/cardano-node/usr/bin
+	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
+	debian/build_default_configs
+	# bash completions
+	mkdir -p "debian/cardano-node/${bash_completions_dir}"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-node > "debian/cardano-node/${bash_completions_dir}/cardano-node"
+	#------------------------#
+	# cardano-submit-api deb #
+	#------------------------#
+	mkdir -p debian/cardano-submit-api/usr/bin
+	cp -p $(shell ./scripts/bin-path.sh cardano-submit-api) debian/cardano-submit-api/usr/bin/
+	# bash completions
+	mkdir -p "debian/cardano-submit-api/${bash_completions_dir}"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-submit-api > "debian/cardano-submit-api/${bash_completions_dir}/cardano-submit-api"
+
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start --restart-after-upgrade
