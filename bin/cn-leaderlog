@@ -4,21 +4,22 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-# CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet/node.socket' cardano-cli query leadership-schedule --mainnet --genesis /etc/cardano/mainnet/shelley-genesis.json --stake-pool-id "blahblahblah" --vrf-signing-key-file /etc/cardano/private/vrf.skey --current
+# CARDANO_NODE_SOCKET_PATH='/run/cardano/mainnet/node.socket' cardano-cli conway query leadership-schedule --mainnet --genesis /etc/cardano/mainnet/shelley-genesis.json --stake-pool-id "blahblahblah" --vrf-signing-key-file /etc/cardano/private/vrf.skey --current
 
 CONFIG_DIR='/etc/cardano' #FIXME
-CONFIG_NET='mainnet' #FIXME mainnet|preprod|preview
-export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}/node.socket" #FIXME
+CONFIG_NET='mainnet' # mainnet|preprod|preview #FIXME
+CONFIG_ERA='latest' # conway|latest #FIXME
 pool_vrf_skey="${CONFIG_DIR}/private/vrf.skey" #FIXME
-shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}/shelley-genesis.json"
-nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
-pool_id_file="${CONFIG_DIR}/${CONFIG_NET}/pool-id" #FIXME
 
 function usage() {
   cat << END_OF_USAGE >&2
-Usage: $(basename $0) current | next
+Usage: $(basename $0) [OPTION...] current | next
 Generates leaderlog for current or next epoch
 
+        --era=ERA     In given era where ERA is: conway | latest
+		      (Default: latest)
+        --net=NET     For given net where NET is: mainnet | preprod | preview
+		      (Default: mainnet)
     -h, --help        display this help and exit
 
 END_OF_USAGE
@@ -54,10 +55,27 @@ while [[ $# -gt 0 && "${1:0:1}" = '-' ]]; do
   opt="${1}"
   shift
   case "${opt}" in
-    '-h' | '--help' ) usage; exit 0;;
-    * ) printf '%s\n' "Invalid option: '${opt}'" >&2; err_exit "Try '$(basename $0) --help' for more information";;
+    --net=* )
+      CONFIG_NET="${opt#*=}"
+      ;;
+    --era=* )
+      CONFIG_ERA="${opt#*=}"
+      ;;
+    -h | --help )
+      usage
+      exit 0
+      ;;
+    * )
+      printf '%s\n' "Invalid option: '${opt}'" >&2
+      err_exit "Try '$(basename $0) --help' for more information"
+      ;;
   esac
 done
+
+export CARDANO_NODE_SOCKET_PATH="/run/cardano/${CONFIG_NET}/node.socket" #FIXME
+shelley_genesis="${CONFIG_DIR}/${CONFIG_NET}/shelley-genesis.json" #FIXME
+nwmagic="$(jq -r '.networkMagic' "${shelley_genesis}")"
+pool_id_file="${CONFIG_DIR}/${CONFIG_NET}/pool-id" #FIXME
 
 # Should be only current | next command line argument remaining
 if [[ $# != 1 || ! "${1}" =~ ^(current|next)$ ]]; then
@@ -67,7 +85,7 @@ epoch="$1"
 
 pool_id="$(file_key_value "${pool_id_file}" 'POOL_ID')" || err_exit "${pool_id_file} must contain POOL_ID=VALUE"
 
-epoch_nr="$(cardano-cli query tip --testnet-magic "${nwmagic}" | jq '.epoch')"
+epoch_nr="$(cardano-cli "${CONFIG_ERA}" query tip --testnet-magic "${nwmagic}" | jq '.epoch')"
 if [[ "$epoch" == 'next' ]]; then (( epoch_nr++ )); fi
 
 printf 'epoch %d, poolid %s\n' "${epoch_nr}" "${pool_id}"
@@ -82,7 +100,7 @@ while IFS= read -r line; do
   localtime=$(date -d "${time}" "+%Y-%m-%dT%H:%M:%S%z")
   (( count++ )) || true # errexit
   printf '%2d %10d %s\n' "${count}" "${slot}" "${localtime}"
-done < <(nice -n 15 cardano-cli query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
+done < <(nice -n 15 cardano-cli "${CONFIG_ERA}" query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
 printf -- '--------------------------------------\n'
 printf 'Total: %d assigned slots.\n' "$count"
 
