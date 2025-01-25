@@ -1,0 +1,12 @@
+# ignore vim .swp files
+*.swp
+# debian build files
+.debhelper/
+*.debhelper
+*.log
+*.substvars
+debhelper-build-stamp
+files
+# cardano-node and cardano-cli install directories
+cardano-node/
+cardano-cli/
