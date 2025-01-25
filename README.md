@@ -136,6 +136,7 @@ You can also check available tags at: https://github.com/IntersectMBO/cardano-no
 The following sequence of commands will remove and recreate the "${HOME}/src/cardano-node" directory.  Familiarise yourself with the following commands before running them.  You can simply copy and paste the entire list of commands below into a bash terminal to run them in sequence.
 
 ## Build cardano-cli, cardano-node, cardano-submit-api deb packages
+Nb. Ensure ${CARDANO_NODE_VERSION}" variable has been set either manually or by using the previous command.
 ```
 deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'; \
 
