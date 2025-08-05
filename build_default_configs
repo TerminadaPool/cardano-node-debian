@@ -15,7 +15,7 @@ for net in mainnet preprod preview; do
     echo "${key}=#FIXME" > "${DOWNLOAD_DIR}/${keyfile}"
   done
   echo "Downloading cardano-node default configuration files for ${net}"
-  for cfg in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis; do
+  for cfg in config topology byron-genesis shelley-genesis alonzo-genesis conway-genesis checkpoints peer-snapshot; do
     echo -n "  ${DOWNLOAD_DIR}/${cfg}.json ..."
     if curl -sL "${IOG_CONFIG_SRC}/${net}/${cfg}.json" -o "${DOWNLOAD_DIR}/${cfg}.json" --max-time 20; then
       echo " Success."
@@ -39,3 +39,45 @@ for net in mainnet preprod preview; do
     fi
   done
 done
+# Create default cardano-tracer configuration files
+for net in mainnet preprod preview; do
+  DOWNLOAD_DIR="debian/cardano-tracer${CONFIG_DIR}/${net}"
+  mkdir -p "${DOWNLOAD_DIR}"
+  # networkMagic from cardano-node downloaded shelley-genesis files
+  NETWORK_MAGIC="$(cat "debian/cardano-node${CONFIG_DIR}/${net}/shelley-genesis.json" | jq '.networkMagic')"
+  echo "Creating cardano-tracer default configuration file for ${net}"
+  for cfg in tracer-config; do
+    cat << END_TRACER_CONFIG > "${DOWNLOAD_DIR}/${cfg}.json"
+{
+  "networkMagic": $NETWORK_MAGIC,
+  "network": {
+    "tag": "AcceptAt",
+    "contents": "/run/cardano/${net}/forwarder.socket"
+  },
+  "logging": [
+    {
+      "logRoot": "/var/log/cardano/${net}/tracer-logs",
+      "logMode": "FileMode",
+      "logFormat": "ForMachine"
+    }
+  ],
+  "rotation": {
+    "rpFrequencySecs": 3600,
+    "rpKeepFilesNum": 31,
+    "rpLogLimitBytes": 10000000,
+    "rpMaxAgeHours": 24
+  },
+  "hasPrometheus": {
+    "epHost": "127.0.0.1",
+    "epPort": 3200
+  },
+  "hasEKG": {
+    "epHost": "127.0.0.1",
+    "epPort": 3100
+  }
+}
+END_TRACER_CONFIG
+    echo "Created: ${CONFIG_DIR}/${cfg}.json"
+  done
+done
+

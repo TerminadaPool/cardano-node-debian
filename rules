@@ -6,10 +6,10 @@ export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 # Check ghc version history at: https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/version-history
-ghc_version=9.8.4
+ghc_version=9.12.2
 #ghc_version=9.10.1
-cabal_version=3.12.1.0
-#cabal_version=3.14.1.1
+#cabal_version=3.14.2.0
+cabal_version=3.16.0.0
 bash_completions_dir=usr/share/bash-completion/completions
 
 %:
@@ -59,11 +59,11 @@ override_dh_auto_configure:
 	#echo "" >> cabal.project.local
 
 override_dh_auto_build:
-	cabal build cardano-node
-	cabal build cardano-cli
 	cabal build bech32
+	cabal build cardano-cli
+	cabal build cardano-node
 	cabal build cardano-submit-api
-	cabal build all
+	cabal build cardano-tracer
 
 override_dh_auto_install:
 	#-----------------#
@@ -93,6 +93,14 @@ override_dh_auto_install:
 	# bash completions
 	mkdir -p "debian/cardano-submit-api/${bash_completions_dir}"
 	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-submit-api > "debian/cardano-submit-api/${bash_completions_dir}/cardano-submit-api"
+	#--------------------#
+	# cardano-tracer deb #
+	#--------------------#
+	mkdir -p debian/cardano-tracer/usr/bin
+	cp -p $(shell ./scripts/bin-path.sh cardano-tracer) debian/cardano-tracer/usr/bin/
+	# bash completions
+	mkdir -p "debian/cardano-tracer/${bash_completions_dir}"
+	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-tracer > "debian/cardano-tracer/${bash_completions_dir}/cardano-tracer"
 
 override_dh_installsystemd:
 	dh_installsystemd --no-enable --no-start --restart-after-upgrade

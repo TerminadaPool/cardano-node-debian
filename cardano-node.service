@@ -17,7 +17,7 @@ LimitNOFILE=32768
 # SERVICE_PORT can be overridden in EnvironmentFile
 Environment='SERVICE_PORT=3001'
 EnvironmentFile=-/etc/cardano/mainnet/service-port
-ExecStart=cardano-node +RTS -N -RTS run \
+ExecStart=cardano-node +RTS -N -I0 -A16m -qg1 -qb1 --disable-delayed-os-memory-return -RTS run \
   --host-addr 0.0.0.0 \
   --port ${SERVICE_PORT} \
   --socket-path /run/cardano/mainnet/node.socket \

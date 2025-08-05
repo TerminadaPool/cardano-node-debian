@@ -11,8 +11,8 @@ These deb packages will install the software in the following standard locations
 - Systemd service file is placed in /lib/systemd/system/
 
 ## Check for any recent changes to install instructions
-- See wiki article: [Installing the node from source](<https://github.com/input-output-hk/cardano-node-wiki/wiki/install>)
-- Review version history of the markdown file: https://github.com/input-output-hk/cardano-node-wiki/blob/main/docs/getting-started/install.md
+- See wiki article: [Getting cardano-node: Building from source](<https://developers.cardano.org/docs/operate-a-stake-pool/node-operations/installing-cardano-node>)
+- Review version history of the corresponding markdown file: https://github.com/cardano-foundation/developer-portal/blob/staging/docs/operate-a-stake-pool/node-operations/installing-cardano-node.md
   - Click "History" in top right, then click any recent commits to see what changes have been made.  If no significant changes then continue.
 
 ## Setup your build environment
@@ -25,7 +25,7 @@ sudo adduser --gecos '' --disabled-password builder
 
 Install build dependencies and some extra requirements
 ```
-sudo apt install build-essential fakeroot devscripts debhelper autoconf-archive d-shlibs pkg-kde-tools git curl automake pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make jq libncursesw5 libtool autoconf libncurses-dev libncurses5 libnuma-dev
+sudo apt install build-essential fakeroot devscripts debhelper autoconf-archive d-shlibs pkg-kde-tools git curl automake pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make jq libncursesw5 libtool autoconf libncurses-dev libncurses5 libnuma-dev liblmdb-dev
 ```
 
 Optionally install llvm and set cc and c++ to use clang
@@ -60,7 +60,7 @@ Otherwise use dpkg to install them:
 ```
 dpkg -i libsodium23-iog_1.0.18_amd64.deb libsodium-dev-iog_1.0.18_amd64.deb; \
 dpkg -i libsecp256k1-2-iog_0.3.2_amd64.deb libsecp256k1-dev-iog_0.3.2_amd64.deb; \
-dpkg -i libblst-iog_0.3.11_amd64.deb;
+dpkg -i libblst-iog_0.3.14_amd64.deb;
 ```
 
 Switch to your builder account
@@ -114,6 +114,8 @@ Check versions
 ghcup --version; \
 cabal --version
 ```
+
+Use ```ghcup tui``` to view which version of ghc and cabal are available.  Then choose which versions to install and set as default.
 
 ### Optionally force rebuilding of all Haskell dependencies
 Previously built dependencies are stored in ${HOME}/.cabal/store/
