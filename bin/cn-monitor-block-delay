@@ -1,5 +1,5 @@
 #!/bin/bash
-# Author: terminada.io 20211031 updated 20240331
+# Author: terminada.io 20211031 updated 20250527
 set -o nounset
 set -o errexit
 set -o pipefail
@@ -53,27 +53,18 @@ function file_key_value() {
   return 0
 }
 
-function write_log() {
-  local hash slot block delay
-  hash=$1; slot=$2; block=$3; delay=$4
-  printf 'Hash=%s,Slot=%d,Block=%d,Delayed=%0.3f\n' "$hash" "$slot" "$block" "$delay"
-}
-
 function send_pooltool() {
-  local hash slot block delay
-  hash="$1"; slot="$2"; block="$3"; delay="$4"
-  # Calculate time from slot + delay and round to 3 decimal places
-  timestamp="$(printf '%.3f' $(printf '%s\n' "$slot0sec + $slot + $delay" | bc))"
-  datetime="$(date --utc --date=@${timestamp} +"%FT%T.%3NZ")"
+  local atutc hash block slot
+  atutc="$1"; hash="$2"; block="$3"; slot="$4";
   json="$(jq -cn --arg apiKey "$api_key" --arg poolId "$pool_id" \
-    --arg nodeId "$node_id" --arg version "$version" --arg at "$datetime" \
+    --arg nodeId "$node_id" --arg version "$version" --arg at "$atutc" \
     --arg blockNo "$block" --arg slotNo "$slot" \
     --arg blockHash "$hash" --arg platform "$platform" \
     '{apiKey: $apiKey, poolId: $poolId, data: {nodeId: $nodeId, version: $version, at: $at, blockNo: $blockNo | tonumber, slotNo: $slotNo | tonumber, blockHash: $blockHash, platform: $platform}}')"
   response="$(curl -s -H "Accept: application/json" -H "Content-Type:application/json" -X POST --data "$json" 'https://api.pooltool.io/v0/sendstats' || true)" # '' if curl fails
   success="$(printf '%s\n' "${response:-}" | jq -r '.success')"
   if [[ "$success" == 'true' ]]; then result='success'; else result='failure'; fi;
-  printf 'Sent pooltool: %s Response: %s\n' "hash=${hash},slot=${slot},block=${block},datetime=${datetime}" "$result"
+  printf 'Sent pooltool: %s Response: %s\n' "at=${atutc},hash=${hash},block=${block},slot=${slot}" "$result"
 }
 
 # Process optional command line arguments
@@ -100,21 +91,18 @@ fi
 printf '%s\n' "$(basename $0) following journal:"
 
 # regex for log when new block received "Chain extended, new tip:"
-regex='\[([-0-9]+)\ ([\.:0-9]+)\ UTC\]\ Chain\ extended,\ new\ tip:\ ([a-f0-9]+)\ at\ slot\ ([0-9]+)$'
-lasthash=''
+regex='^[^\{]+(\{.*,"ns":"ChainDB.AddBlockEvent.AddedToCurrentChain".*\})$'
 # follow journal unit cardano-node < <(journalctl -fn0 -u cardano-node)
 while IFS= read -r line; do
-  [[ "${line:-}" =~ $regex ]] || continue # skip logs not about new blocks
-  logtime="${BASH_REMATCH[1]}T${BASH_REMATCH[2]}Z"
-  loghash="${BASH_REMATCH[3]}"
-  logslot="${BASH_REMATCH[4]}"
-  [[ "${loghash}" != "${lasthash}" ]] || continue # skip log if same block
-  lasthash="$loghash"
-  # Get data from EKGView. \(.val) syntax for jq string interpolation
-  read -r block ekgslot delay < <(curl -s -H 'Accept: application/json' http:/localhost:12788 | jq -r '.cardano.node.metrics | "\(.blockNum.int.val) \(.slotNum.int.val) \(.blockfetchclient.blockdelay.s.val)"')
-  [[ "${ekgslot:-}" == "${logslot:-}" ]] || continue # skip if slots differ
-  [[ -z "${delay:-}" || "$delay" == 'null' || -z "${block:-}" || "$block" == 'null' ]] && continue # skip empty or null
-  write_log "$loghash" "$ekgslot" "$block" "$delay"
-  [[ "${optsend:-}" == 'true' ]] && send_pooltool "$loghash" "$ekgslot" "$block" "$delay"
+  [[ "${line:-}" =~ $regex ]] || continue # skip unless ChainDB.AddBlockEvent.AddedToCurrentChain
+  logjson="${BASH_REMATCH[1]}"
+  #printf '%s\n' "${logjson}"
+  #echo "${logjson}" | jq -r '.'
+  read -r at newtip chainlength slotno < <(echo "${logjson}" | jq -r '[.at, .data.newtip, (.data.newTipSelectView | .chainLength, .slotNo)] | @tsv')
+  atsecs="$(date --date ${at} +%s.%9N)"
+  delay="$(printf '%s\n' "${atsecs} - ${slot0sec} - ${slotno}" | bc)"
+  printf '%s: Hash=%s,Block=%s,Slot=%d,Delay=%0.3f\n' "${at}" "${newtip}" "${chainlength}" "${slotno}" "${delay}"
+  [[ "${optsend:-}" == 'true' ]] && send_pooltool "${at}" "${newtip}" "${chainlength}" "${slotno}"
 done < <(journalctl -fn0 -u cardano-node)
 
+exit 0

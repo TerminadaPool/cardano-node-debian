@@ -1,5 +1,5 @@
 #!/bin/bash
-# Author: terminada.io 20220704, updated 20240331
+# Author: terminada.io 20220704, updated 20250802
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -93,14 +93,10 @@ printf '%2s %-10s %s\n' 'No' '  Slot' 'Time'
 printf -- '--------------------------------------\n'
 regex='^\s+([0-9]+)\s+([0-9-]+\s[0-9:]+\s.*)$'
 count=0
-while IFS= read -r line; do
-  [[ "${line:-}" =~ $regex ]] || continue # skip lines not about blocks
-  slot="${BASH_REMATCH[1]}"
-  time="${BASH_REMATCH[2]}"
+while IFS=$'\t' read -r slot time; do
   localtime=$(date -d "${time}" "+%Y-%m-%dT%H:%M:%S%z")
   (( count++ )) || true # errexit
   printf '%2d %10d %s\n' "${count}" "${slot}" "${localtime}"
-done < <(nice -n 15 cardano-cli "${CONFIG_ERA}" query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}")
+done < <(nice -n 15 cardano-cli "${CONFIG_ERA}" query leadership-schedule --testnet-magic "${nwmagic}" --genesis "${shelley_genesis}" --stake-pool-id "${pool_id}" --vrf-signing-key-file "${pool_vrf_skey}" --"${epoch}" | jq --raw-output 'map([.slotNumber, .slotTime])[] | @tsv')
 printf -- '--------------------------------------\n'
 printf 'Total: %d assigned slots.\n' "$count"
-
