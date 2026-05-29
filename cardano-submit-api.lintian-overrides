@@ -1,0 +1,1 @@
+cardano-submit-api: embedded-library libyaml [usr/bin/cardano-submit-api]

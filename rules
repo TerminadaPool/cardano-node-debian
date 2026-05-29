@@ -6,21 +6,28 @@ export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 # Check ghc version history at: https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/version-history
-ghc_version=9.12.2
-#ghc_version=9.10.1
-#cabal_version=3.14.2.0
-cabal_version=3.16.0.0
-bash_completions_dir=usr/share/bash-completion/completions
+# Run: `ghcup tui` then select version of ghc and cabal to install
+
+#GHC_VERSION := 9.14.1
+GHC_VERSION := 9.12.4
+#GHC_VERSION := 9.8.4
+
+CABAL_VERSION := 3.16.1.0
+#CABAL_VERSION := 3.14.2.0
+
+CARDANO_EXECUTABLES := bech32 cardano-cli cardano-node cardano-submit-api cardano-tracer
+
+HELPER_SCRIPTS := $(shell find debian/bin -maxdepth 1 -type f -executable -exec basename {} \;)
 
 %:
 	dh $@ --with autoreconf -Bbuild
 
 override_dh_auto_configure:
 	ghcup upgrade
-	ghcup install ghc ${ghc_version}
-	ghcup set ghc ${ghc_version}
-	ghcup install cabal ${cabal_version}
-	ghcup set cabal ${cabal_version}
+	ghcup install ghc ${GHC_VERSION}
+	ghcup set ghc ${GHC_VERSION}
+	ghcup install cabal ${CABAL_VERSION}
+	ghcup set cabal ${CABAL_VERSION}
 	cabal update
 	echo "--------------------------------------------------"
 	echo "Haskell build environment:"
@@ -29,23 +36,23 @@ override_dh_auto_configure:
 	cabal --version
 	echo "--------------------------------------------------"
 	echo
-	#cabal configure --with-compiler=ghc-${ghc_version} --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
+	#cabal configure --with-compiler=ghc-${GHC_VERSION} --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
 	#--------------------------------------------------------------------
 	# Custom cabal.project.local
 	#--------------------------------------------------------------------
 	echo "ignore-project: False" >> cabal.project.local
-	echo "with-compiler: ghc-${ghc_version}" >> cabal.project.local
-	echo "split-sections: True" >> cabal.project.local
+	echo "with-compiler: ghc-${GHC_VERSION}" >> cabal.project.local
+	# Split binary into smaller sections (reduces executable size, increases symbols and sections)
+	#echo "split-sections: True" >> cabal.project.local
+	# Strip debug symbols (reduces executable size, no impact on speed)
 	echo "executable-stripping: True" >> cabal.project.local
 	echo "library-stripping: True" >> cabal.project.local
 	echo "optimization: 2" >> cabal.project.local
 	echo "" >> cabal.project.local
-	echo "program-options" >> cabal.project.local
-	echo "  ghc-options: -fllvm" >> cabal.project.local
-	echo "" >> cabal.project.local
+	# LLVM backend may more aggressively optimise than ghc native, but may bloat binary
 	echo "package *" >> cabal.project.local
 	echo "  optimization: 2" >> cabal.project.local
-	echo "  ghc-options: -fllvm" >> cabal.project.local
+	echo "  ghc-options: -O2 -fllvm" >> cabal.project.local
 	echo "" >> cabal.project.local
 	#--------------------------------------------------------------------
 	# Only for testing use external libsodium and enable additional iohk
@@ -59,48 +66,35 @@ override_dh_auto_configure:
 	#echo "" >> cabal.project.local
 
 override_dh_auto_build:
-	cabal build bech32
-	cabal build cardano-cli
-	cabal build cardano-node
-	cabal build cardano-submit-api
-	cabal build cardano-tracer
+	# Build all executables
+	cabal build $(CARDANO_EXECUTABLES)
 
 override_dh_auto_install:
-	#-----------------#
-	# cardano-cli deb #
-	#-----------------#
-	mkdir -p debian/cardano-cli/usr/bin
-	cp -p $(shell ./scripts/bin-path.sh bech32) debian/cardano-cli/usr/bin/
-	cp -p $(shell ./scripts/bin-path.sh cardano-cli) debian/cardano-cli/usr/bin/
-	# bash completions
-	mkdir -p "debian/cardano-cli/${bash_completions_dir}"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script bech32 > "debian/cardano-cli/${bash_completions_dir}/bech32"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-cli > "debian/cardano-cli/${bash_completions_dir}/cardano-cli"
-	#------------------#
-	# cardano-node deb #
-	#------------------#
-	mkdir -p debian/cardano-node/usr/bin
-	cp -p $(shell ./scripts/bin-path.sh cardano-node) debian/cardano-node/usr/bin/
+	# Create target directory strucutre
+	mkdir -p debian/tmp/usr/bin
+	mkdir -p debian/tmp/usr/share/man/man1
+	mkdir -p debian/tmp/usr/share/bash-completion/completions
+	# Install Cardano executables to debian/tmp/usr/bin
+	cabal install --installdir=$(CURDIR)/debian/tmp/usr/bin --install-method=copy $(CARDANO_EXECUTABLES)
+	# Install helper scripts from debian/bin
+	find debian/bin -maxdepth 1 -type f -executable -exec cp -p {} debian/tmp/usr/bin/ \;
+	# Generate man pages for Cardano executables
+	for bin in $(CARDANO_EXECUTABLES); do \
+		echo "Generating man page for $$bin..."; \
+		$(CURDIR)/debian/build_manpage -o debian/tmp $$bin || exit 1; \
+		done
+	# Generate man pages for helper scripts
+	for script in $(HELPER_SCRIPTS); do \
+		echo "Generating man page for $$script..."; \
+		$(CURDIR)/debian/build_manpage -o debian/tmp $$script || exit 1; \
+		done
+	# Generate bash completions
+	for bin in $(CARDANO_EXECUTABLES); do \
+		echo "Generating completion for $$bin..."; \
+		$(CURDIR)/debian/tmp/usr/bin/cardano-cli --bash-completion-script $$bin > "debian/tmp/usr/share/bash-completion/completions/$$bin"; \
+		done
+	# Generate default configurations files
 	debian/build_default_configs
-	# bash completions
-	mkdir -p "debian/cardano-node/${bash_completions_dir}"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-node > "debian/cardano-node/${bash_completions_dir}/cardano-node"
-	#------------------------#
-	# cardano-submit-api deb #
-	#------------------------#
-	mkdir -p debian/cardano-submit-api/usr/bin
-	cp -p $(shell ./scripts/bin-path.sh cardano-submit-api) debian/cardano-submit-api/usr/bin/
-	# bash completions
-	mkdir -p "debian/cardano-submit-api/${bash_completions_dir}"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-submit-api > "debian/cardano-submit-api/${bash_completions_dir}/cardano-submit-api"
-	#--------------------#
-	# cardano-tracer deb #
-	#--------------------#
-	mkdir -p debian/cardano-tracer/usr/bin
-	cp -p $(shell ./scripts/bin-path.sh cardano-tracer) debian/cardano-tracer/usr/bin/
-	# bash completions
-	mkdir -p "debian/cardano-tracer/${bash_completions_dir}"
-	debian/cardano-cli/usr/bin/cardano-cli --bash-completion-script cardano-tracer > "debian/cardano-tracer/${bash_completions_dir}/cardano-tracer"
 
 override_dh_installsystemd:
 	dh_installsystemd --no-enable --no-start --restart-after-upgrade

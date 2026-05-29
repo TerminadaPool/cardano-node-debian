@@ -1,2 +1,8 @@
-debian/bin/cn-leaderlog usr/bin
-debian/bin/cn-monitor-block-delay usr/bin
+usr/bin/cardano-node
+usr/share/bash-completion/completions/cardano-node
+usr/share/man/man1/cardano-node.1.gz
+# Helper scripts
+usr/bin/cn-leaderlog
+usr/bin/cn-monitor-block-delay
+usr/share/man/man1/cn-leaderlog.1.gz
+usr/share/man/man1/cn-monitor-block-delay.1.gz

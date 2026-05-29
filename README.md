@@ -12,7 +12,7 @@ These deb packages will install the software in the following standard locations
 
 ## Check for any recent changes to install instructions
 - See wiki article: [Getting cardano-node: Building from source](<https://developers.cardano.org/docs/operate-a-stake-pool/node-operations/installing-cardano-node>)
-- Review version history of the corresponding markdown file: https://github.com/cardano-foundation/developer-portal/blob/staging/docs/operate-a-stake-pool/node-operations/installing-cardano-node.md
+- Review version history of the corresponding markdown file: https://github.com/cardano-foundation/developer-portal/blob/staging/docs/get-started/infrastructure/node/installing-cardano-node.md
   - Click "History" in top right, then click any recent commits to see what changes have been made.  If no significant changes then continue.
 
 ## Setup your build environment
@@ -25,24 +25,24 @@ sudo adduser --gecos '' --disabled-password builder
 
 Install build dependencies and some extra requirements
 ```
-sudo apt install build-essential fakeroot devscripts debhelper autoconf-archive d-shlibs pkg-kde-tools git curl automake pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make jq libncursesw5 libtool autoconf libncurses-dev libncurses5 libnuma-dev liblmdb-dev binutils-gold
+sudo apt install --assume-yes build-essential fakeroot devscripts debhelper autoconf-archive d-shlibs pkg-kde-tools git curl automake pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make jq pandoc libncursesw5 libtool autoconf libncurses-dev libncurses5 libnuma-dev liblmdb-dev binutils-gold libsnappy-dev protobuf-compiler liburing-dev
 ```
 
 Optionally install llvm and set cc and c++ to use clang
 ```
-sudo apt install llvm clang; \
-sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100; \
+sudo apt install llvm clang
+sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 100
 sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 100
 ```
 Ubuntu users might need to skip the previous optional step if their Ubuntu version of clang doesn't support optimization flag '-ffat-lto-objects'.  Revert the previous changes with:
 ```
-sudo apt purge llvm clang; \
-sudo apt autoremove;
+sudo apt purge llvm clang
+sudo apt autoremove
 ```
 
 Ubuntu users may need to manually install libssl1.1 if it is not on their system:
 ```
-wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb; \
+wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
 sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.22_amd64.deb
 ```
 
@@ -58,9 +58,9 @@ apt install libsodium-dev-iog libsecp256k1-dev-iog libblst-iog
 ```
 Otherwise use dpkg to install them:
 ```
-dpkg -i libsodium23-iog_1.0.18_amd64.deb libsodium-dev-iog_1.0.18_amd64.deb; \
-dpkg -i libsecp256k1-2-iog_0.3.2_amd64.deb libsecp256k1-dev-iog_0.3.2_amd64.deb; \
-dpkg -i libblst-iog_0.3.14_amd64.deb;
+dpkg -i libsodium23-iog_1.0.18_amd64.deb libsodium-dev-iog_1.0.18_amd64.deb
+dpkg -i libsecp256k1-2-iog_0.3.2_amd64.deb libsecp256k1-dev-iog_0.3.2_amd64.deb
+dpkg -i libblst-iog_0.3.14_amd64.deb
 ```
 
 Switch to your builder account
@@ -104,14 +104,14 @@ These 'system requirements' packages should already have been installed above so
 
 ## Setup $PATH in ~/.bashrc to include cabal and ghcup bin directories
 ```
-echo '[[ ":$PATH:" != *":$HOME/.ghcup/bin:"* ]] && PATH="$HOME/.ghcup/bin:$PATH"' >> ${HOME}/.bashrc; \
-echo '[[ ":$PATH:" != *":$HOME/.cabal/bin:"* ]] && PATH="$HOME/.cabal/bin:$PATH"' >> ${HOME}/.bashrc; \
-echo 'export PATH' >> ${HOME}/.bashrc; \
-source ${HOME}/.bashrc;
+echo '[[ ":$PATH:" != *":$HOME/.ghcup/bin:"* ]] && PATH="$HOME/.ghcup/bin:$PATH"' >> ${HOME}/.bashrc
+echo '[[ ":$PATH:" != *":$HOME/.cabal/bin:"* ]] && PATH="$HOME/.cabal/bin:$PATH"' >> ${HOME}/.bashrc
+echo 'export PATH' >> ${HOME}/.bashrc
+source ${HOME}/.bashrc
 ```
 Check versions
 ```
-ghcup --version; \
+ghcup --version
 cabal --version
 ```
 
@@ -130,37 +130,93 @@ See: https://github.com/intersectMBO/cardano-node
 
 Or from the command line with:
 ```
-CARDANO_NODE_VERSION="$(curl -s https://api.github.com/repos/intersectMBO/cardano-node/releases/latest | jq -r .tag_name)"; \
-echo "Latest CARDANO_NODE_VERSION is: ${CARDANO_NODE_VERSION}";
+CARDANO_NODE_VERSION="$(curl -s https://api.github.com/repos/intersectMBO/cardano-node/releases/latest | jq -r .tag_name)"
+echo "Latest CARDANO_NODE_VERSION is: ${CARDANO_NODE_VERSION}"
 ```
 You can also check available tags at: https://github.com/IntersectMBO/cardano-node/tags
+
+## Check required versions of dependencies
+```
+# 1. Latest CARDANO_NODE_VERSION
+CARDANO_NODE_VERSION="$(curl -s https://api.github.com/repos/intersectMBO/cardano-node/releases/latest | jq -r .tag_name)"
+
+# 2. IOHKNIX_VERSION
+IOHKNIX_VERSION="$(curl https://raw.githubusercontent.com/IntersectMBO/cardano-node/$CARDANO_NODE_VERSION/flake.lock | jq -r '.nodes.iohkNix.locked.rev')"
+
+# 3. Required versions
+# Fetch iohk-nix flake.lock, read SODIUM_VERSION SECP256K1_VERSION BLST_VERSION
+read -r -d '' SODIUM_VERSION SECP256K1_VERSION BLST_VERSION < <(
+  curl -s https://raw.githubusercontent.com/input-output-hk/iohk-nix/$IOHKNIX_VERSION/flake.lock | 
+  jq -r '
+    .nodes.sodium.original.rev,
+    .nodes.secp256k1.original.ref,
+    .nodes.blst.original.ref
+  '
+)
+
+# 4. Currently installed versions
+current_SODIUM_VERSION="$(dpkg -s libsodium-dev-iog | grep "built from commit:" | awk '{print $NF}')"
+current_SECP256K1_VERSION="$(pkg-config --modversion libsecp256k1 2>/dev/null)"
+current_BLST_VERSION="$(pkg-config --modversion libblst 2>/dev/null)"
+
+# 5. Helper for formatted output
+print_status() {
+  local label="${1:-}" required="${2:-}" current="${3:-}"
+  [[ "$required" == "$current" ]] || {
+    echo "Required $label $required [❌] (Installed: $current)"
+    return 1
+  }
+  echo "Required $label $required [✅]"
+  return 0
+}
+
+# 6. Verify required versions
+FAIL=0
+echo ""
+echo "=================================================================="
+echo "=            cardano-node dependency verification                ="
+echo "=================================================================="
+echo "cardano Node version:          $CARDANO_NODE_VERSION"
+echo "iohk-nix version:              $IOHKNIX_VERSION"
+echo "------------------------------------------------------------------"
+print_status "libsodium version:   " "$SODIUM_VERSION" "$current_SODIUM_VERSION" || FAIL=1
+print_status "libsecp256k1 version:" "${SECP256K1_VERSION#v}" "$current_SECP256K1_VERSION" || FAIL=1
+print_status "libblst version:     " "${BLST_VERSION#v}" "$current_BLST_VERSION" || FAIL=1
+echo "------------------------------------------------------------------"
+if (( FAIL == 0 )); then
+  echo "✅ All installed dependencies matched required versions"
+else
+  echo "❌ MISMATCHED DEPENDENCY. Please install libraries to match required versions."
+fi
+echo "=================================================================="
+```
 
 The following sequence of commands will remove and recreate the "${HOME}/src/cardano-node" directory.  Familiarise yourself with the following commands before running them.  You can simply copy and paste the entire list of commands below into a bash terminal to run them in sequence.
 
 ## Build cardano-cli, cardano-node, cardano-submit-api deb packages
 Nb. Ensure ${CARDANO_NODE_VERSION}" variable has been set either manually or by using the previous command.
 ```
-deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'; \
+deb_build_instructions_repo='https://github.com/TerminadaPool/cardano-node-debian.git'
 
-cardano_node_repo='https://github.com/IntersectMBO/cardano-node.git'; \
+cardano_node_repo='https://github.com/IntersectMBO/cardano-node.git'
 
 package='cardano-node'
-basedir="${HOME}/src/${package}"; \
+basedir="${HOME}/src/${package}"
 
-mkdir -p "${basedir}"; \
-cd "${basedir}"; \
-rm -rf "${package}-${CARDANO_NODE_VERSION}"; \
+mkdir -p "${basedir}"
+cd "${basedir}"
+rm -rf "${package}-${CARDANO_NODE_VERSION}"
 
-git clone "${cardano_node_repo}" "cardano-node-${CARDANO_NODE_VERSION}"; \
-cd "cardano-node-${CARDANO_NODE_VERSION}"; \
-git fetch --all --recurse-submodules --tags; \
-git checkout "tags/${CARDANO_NODE_VERSION}"; \
+git clone "${cardano_node_repo}" "cardano-node-${CARDANO_NODE_VERSION}"
+cd "cardano-node-${CARDANO_NODE_VERSION}"
+git fetch --all --recurse-submodules --tags
+git checkout "tags/${CARDANO_NODE_VERSION}"
 
-git clone "${deb_build_instructions_repo}" debian; \
+git clone "${deb_build_instructions_repo}" debian
 
-debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b; \
+DEB_BUILD_OPTIONS="noautodbgsym" debuild --prepend-path "$HOME/.cabal/bin:$HOME/.ghcup/bin" -us -uc -b
 
-unset deb_build_instructions_repo cardano_node_repo package basedir;
+unset deb_build_instructions_repo cardano_node_repo package basedir
 ```
 
 Your debs will be produced in the parent directory: "${HOME}/src/cardano-node/".  They will be named something like:

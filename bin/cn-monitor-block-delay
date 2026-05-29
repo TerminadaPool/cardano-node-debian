@@ -1,5 +1,5 @@
 #!/bin/bash
-# Author: terminada.io 20211031 updated 20250527
+# Author: terminada.io 20211031 updated 20260427
 set -o nounset
 set -o errexit
 set -o pipefail
@@ -98,11 +98,11 @@ while IFS= read -r line; do
   logjson="${BASH_REMATCH[1]}"
   #printf '%s\n' "${logjson}"
   #echo "${logjson}" | jq -r '.'
-  read -r at newtip chainlength slotno < <(echo "${logjson}" | jq -r '[.at, .data.newtip, (.data.newTipSelectView | .chainLength, .slotNo)] | @tsv')
+  read -r at newtip chainlength slotno < <(echo "${logjson}" | jq -r '[.at, .data.newtip, (.data.newSuffixSelectView | .blockNo, .slotNo)] | @tsv')
   atsecs="$(date --date ${at} +%s.%9N)"
   delay="$(printf '%s\n' "${atsecs} - ${slot0sec} - ${slotno}" | bc)"
   printf '%s: Hash=%s,Block=%s,Slot=%d,Delay=%0.3f\n' "${at}" "${newtip}" "${chainlength}" "${slotno}" "${delay}"
   [[ "${optsend:-}" == 'true' ]] && send_pooltool "${at}" "${newtip}" "${chainlength}" "${slotno}"
-done < <(journalctl -fn0 -u cardano-node)
+done < <(nice -n 19 journalctl -fn0 -u cardano-node)
 
 exit 0

@@ -80,4 +80,3 @@ END_TRACER_CONFIG
     echo "Created: ${CONFIG_DIR}/${cfg}.json"
   done
 done
-

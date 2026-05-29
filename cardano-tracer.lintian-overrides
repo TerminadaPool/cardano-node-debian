@@ -1,0 +1,5 @@
+cardano-tracer: embedded-library libyaml [usr/bin/cardano-tracer]
+cardano-tracer: embedded-library libyaml [usr/bin/demo-acceptor]
+cardano-tracer: embedded-library libyaml [usr/bin/demo-forwarder]
+cardano-tracer: no-manual-page [usr/bin/demo-acceptor]
+cardano-tracer: no-manual-page [usr/bin/demo-forwarder]

@@ -63,7 +63,7 @@ Description: Submit api software for Cardano proof-of-stake blockchain
 Package: cardano-tracer
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Submit api software for Cardano proof-of-stake blockchain
+Description: Tracer software for Cardano proof-of-stake blockchain
  Blockchain platform for changemakers, innovators, and visionaries,
  with the tools and technologies required to create possibility for many, as
  well as the few, and bring about positive global change.

@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Usage: build_manpage -o <output_dir> <bin_name>
+
+set -euo pipefail
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -o|--output)
+        [[ -n "${2:-}" ]] || {
+          printf '%s\n' "Option -o/--output requires an argument" >&2
+          exit 1
+        }
+        OUTPUT_DIR="$2"
+        shift 2
+        ;;
+      -h|--help)
+        cat <<END_HELP
+Usage: ${0##*/} [options] <binary_name>
+
+Creates a basic manpage for binary_name from a template file
+(default: debian/manpage-template.md)
+
+Options:
+  -o, --output DIR  The output directory for the manual page (default: .)
+  -h, --help        This help
+END_HELP
+        exit 0
+        ;;
+      -*)
+        printf '%s\n' "Unknown option: $1" >&2
+        exit 1
+        ;;
+      *)
+        # Positional argument - the binary name
+        [[ -z "${BIN_NAME}" ]] || {
+          printf '%s\n' "Unexpected extra argument: $1 (only one binary name allowed)"
+          exit 1
+        }
+        BIN_NAME="$1"
+        shift
+        ;;
+    esac
+  done
+}
+
+# Defaults
+: "${TEMPLATE_FILE:=debian/manpage-template.md}"
+: "${OUTPUT_DIR:=.}"
+BIN_NAME=""
+
+parse_args "$@"
+
+# Validation
+[[ -n "$BIN_NAME" ]] || {
+  printf '%s\n' "Error: No executable name specified" >&2
+  exit 1
+}
+
+[[ -f "$TEMPLATE_FILE" ]] || {
+  printf '%s\n' "Error: Template file not found at $TEMPLATE_FILE" >&2
+  exit 1
+}
+
+# Setup paths
+BASE_NAME="$(basename "$BIN_NAME")"
+MAN_DIR="${OUTPUT_DIR}/usr/share/man/man1"
+MAN_GZ="${MAN_DIR}/${BASE_NAME}.1.gz"
+
+# Create directory
+mkdir -p "$MAN_DIR" || {
+  printf '%s\n' "Error: Unable to mkdir $MAN_DIR" >&2
+  exit 1
+}
+
+# Generate man page
+# Pipeline: sed replaces {{BIN}} -> pandoc converts to man -> gzip compresses
+if sed -e "s|{{BIN}}|${BASE_NAME}|g" "$TEMPLATE_FILE" | \
+   pandoc -s -t man | \
+   gzip -n -9 > "$MAN_GZ"; then
+  printf '%s\n' "Man page generated for $BIN_NAME"
+  exit 0
+else
+  printf '%s\n' "Error: Failed to generate manpage for $BIN_NAME" >&2
+  exit 1
+fi

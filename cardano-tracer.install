@@ -1,0 +1,5 @@
+usr/bin/cardano-tracer
+usr/bin/demo-acceptor
+usr/bin/demo-forwarder
+usr/share/bash-completion/completions/cardano-tracer
+usr/share/man/man1/cardano-tracer.1.gz

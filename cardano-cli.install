@@ -1,2 +1,11 @@
-debian/bin/cn-date-to-slot usr/bin
-debian/bin/cn-slot-to-date usr/bin
+usr/bin/bech32
+usr/bin/cardano-cli
+usr/share/bash-completion/completions/bech32
+usr/share/bash-completion/completions/cardano-cli
+usr/share/man/man1/bech32.1.gz
+usr/share/man/man1/cardano-cli.1.gz
+# Helper scripts
+usr/bin/cn-date-to-slot
+usr/bin/cn-slot-to-date
+usr/share/man/man1/cn-date-to-slot.1.gz
+usr/share/man/man1/cn-slot-to-date.1.gz

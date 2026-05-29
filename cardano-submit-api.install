@@ -1,0 +1,3 @@
+usr/bin/cardano-submit-api
+usr/share/bash-completion/completions/cardano-submit-api
+usr/share/man/man1/cardano-submit-api.1.gz

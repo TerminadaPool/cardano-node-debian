@@ -1,0 +1,1 @@
+cardano-cli: embedded-library libyaml [usr/bin/cardano-cli]
